@@ -2,30 +2,41 @@ ARG DEBIAN_VERSION=bullseye
 
 FROM debian:$DEBIAN_VERSION-slim
 
+ARG ENV RUST_STABLE_VERSION="1.71.0"
+
 # Set environment variables
+ENV SHELL="/bin/bash"
+ENV DEBIAN_FRONTEND="noninteractive"
+
 ENV RUSTUP_HOME="/opt/rustup_home"
 ENV CARGO_HOME="/opt/cargo_home"
 ENV CARGO_TARGET_DIR="/opt/cargo_target"
 ENV PATH="$PATH:$CARGO_HOME/bin"
-ENV RUST_STABLE_VERSION=1.70.0
+
 ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER="aarch64-linux-gnu-gcc"
 ENV CC_aarch64_unknown_linux_gnu="aarch64-linux-gnu-gcc"
 ENV CXX_aarch64_unknown_linux_gnu="aarch64-linux-gnu-g++"
 ENV BINDGEN_EXTRA_CLANG_ARGS=-"-sysroot /usr/aarch64-linux-gnu"
 
+ENV SKIP_WASM_BUILD=1
+ENV RUST_BACKTRACE=1
+
 # Install dependencies
-RUN apt-get update && \
+RUN set -eux && \
+    apt-get -y update && \
     apt-get install --no-install-recommends -y \
-        curl ca-certificates git bash \
-        # rocksdb
+        # tools
+        curl ca-certificates git bash sudo nano \
+        # compilers
         build-essential libclang-dev \
-        # polkadot
+        # dependencies
         protobuf-compiler \
         # cross
         g++-aarch64-linux-gnu libc6-dev-arm64-cross && \
     rm -rf /var/lib/apt/lists/*
 
-RUN useradd rust -u 1000
+RUN useradd rust --create-home -u 1000 --groups sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 RUN mkdir ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
 run chown -R rust:rust ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
 USER rust
@@ -33,9 +44,6 @@ USER rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain ${RUST_STABLE_VERSION} && \
     rustup target add wasm32-unknown-unknown --toolchain ${RUST_STABLE_VERSION} && \
     rustup target add aarch64-unknown-linux-gnu
-RUN command -v wasm-gc || \
-    cargo +${RUST_STABLE_VERSION} install --git https://github.com/alexcrichton/wasm-gc --force
-
 
 ENTRYPOINT ["/bin/bash"]
 

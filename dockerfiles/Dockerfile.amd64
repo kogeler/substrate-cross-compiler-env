@@ -1,32 +1,49 @@
 ARG DEBIAN_VERSION=bullseye
 
-FROM debian:$DEBIAN_VERSION-slim
+FROM debian:${DEBIAN_VERSION}-slim
+
+ARG DEBIAN_VERSION=bullseye
+ARG ENV RUST_STABLE_VERSION="1.71.0"
 
 # Set environment variables
+ENV SHELL="/bin/bash"
+ENV DEBIAN_FRONTEND="noninteractive"
+
 ENV RUSTUP_HOME="/opt/rustup_home"
 ENV CARGO_HOME="/opt/cargo_home"
 ENV CARGO_TARGET_DIR="/opt/cargo_target"
 ENV PATH="$PATH:$CARGO_HOME/bin"
-ENV RUST_STABLE_VERSION=1.70.0
+
+ENV CC="clang-15"
+ENV CXX="clang-15"
+
+ENV SKIP_WASM_BUILD=1
+ENV RUST_BACKTRACE=1
 
 # Install dependencies
-RUN apt-get update && \
+RUN set -eux && \
+    apt-get -y update && \
+    apt-get install --no-install-recommends -y curl ca-certificates && \
+    curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
+    echo "deb http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-15 main" >> /etc/apt/sources.list.d/llvm-toolchain-${DEBIAN_VERSION}-15.list && \
+    apt-get -y update && \
     apt-get install --no-install-recommends -y \
-        curl ca-certificates git bash \
-        # rocksdb
-        build-essential libclang-dev \
-        # polkadot
+        # tools
+        git bash sudo nano \
+        # compilers
+        clang-15 lldb-15 lld-15 libclang-15-dev make \
+        # dependencies
         protobuf-compiler && \
+    update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 100 && \
+    update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-15 100 && \
     rm -rf /var/lib/apt/lists/*
 
-RUN useradd rust -u 1000
+RUN useradd rust --create-home -u 1000 --groups sudo
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 RUN mkdir ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
 run chown -R rust:rust ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
 USER rust
 # Install rust
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain ${RUST_STABLE_VERSION} && \
-    rustup target add wasm32-unknown-unknown --toolchain ${RUST_STABLE_VERSION}
-RUN command -v wasm-gc || \
-    cargo +${RUST_STABLE_VERSION} install --git https://github.com/alexcrichton/wasm-gc --force
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain ${RUST_STABLE_VERSION}
 
 ENTRYPOINT ["/bin/bash"]
