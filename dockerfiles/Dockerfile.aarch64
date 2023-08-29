@@ -2,7 +2,7 @@ ARG DEBIAN_VERSION=bullseye
 
 FROM debian:$DEBIAN_VERSION-slim
 
-ARG ENV RUST_STABLE_VERSION="1.71.0"
+ARG ENV RUST_STABLE_VERSION="1.72.0"
 
 # Set environment variables
 ENV SHELL="/bin/bash"

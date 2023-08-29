@@ -6,7 +6,7 @@ The scripts allow building a substrate node for amd64, aarch64(armv8 64bit) arch
 
 ```commandline
 mkdir git
-git clone https://github.com/paritytech/polkadot.git
+git clone https://github.com/paritytech/polkadot-sdk.git git/polkadot-sdk
 ```
 
 ## Build Docker images
@@ -20,7 +20,7 @@ git clone https://github.com/paritytech/polkadot.git
 ## Build
 ```commandline
 ./run-env.sh bullseye amd64
-cd /git/polkadot
+cd /git/polkadot-sdk/polkadot
 cargo build --release
 exit
 ```
