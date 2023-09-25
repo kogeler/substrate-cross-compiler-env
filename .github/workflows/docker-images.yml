@@ -1,4 +1,4 @@
-name: main branch
+name: Build and push Docker image
 
 on:
   push:
@@ -10,7 +10,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-push-images:
+  docker-images:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -44,6 +44,6 @@ jobs:
         with:
           context: dockerfiles
           file: dockerfiles/Dockerfile.amd64
-          push: ${{ github.ref == 'refs/heads/add-ci' }}
+          push: ${{ github.ref == 'refs/heads/main' }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}"
