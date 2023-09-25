@@ -33,12 +33,10 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: test
-        run: echo ${{ github.ref }}
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: dockerfiles
           file: dockerfiles/Dockerfile.amd64
-          push: false
+          push: ${{ github.ref == 'refs/heads/add-ci' }}
           tags: "${{ env.REGISTRY }}/${{ github.repository }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}"
