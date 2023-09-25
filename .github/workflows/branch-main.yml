@@ -19,7 +19,7 @@ jobs:
       matrix:
         debian-versions: [buster, bullseye, bookworm]
         rust-versions: [1.72.0]
-        clang-versions: [15]
+        clang-versions: [15, 16]
     steps:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
