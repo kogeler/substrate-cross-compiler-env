@@ -26,7 +26,7 @@ RUN set -eux && \
     apt-get -y update && \
     apt-get install --no-install-recommends -y curl ca-certificates && \
     curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
-    echo "deb http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-15 main" >> /etc/apt/sources.list.d/llvm-toolchain-${DEBIAN_VERSION}-15.list && \
+    echo "deb http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-$CLANG_VERSION main" >> /etc/apt/sources.list.d/llvm-toolchain-${DEBIAN_VERSION}-$CLANG_VERSION.list && \
     apt-get -y update && \
     apt-get install --no-install-recommends -y \
         # tools
