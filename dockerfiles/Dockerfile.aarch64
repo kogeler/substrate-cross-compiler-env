@@ -2,7 +2,9 @@ ARG DEBIAN_VERSION=bullseye
 
 FROM debian:$DEBIAN_VERSION-slim
 
-ARG ENV RUST_STABLE_VERSION="1.72.0"
+LABEL org.opencontainers.image.source="https://github.com/kogeler/substrate-cross-compiler-env"
+
+ARG RUST_STABLE_VERSION="1.72.0"
 
 # Set environment variables
 ENV SHELL="/bin/bash"

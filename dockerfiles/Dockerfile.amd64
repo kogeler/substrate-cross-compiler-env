@@ -2,6 +2,8 @@ ARG DEBIAN_VERSION=bullseye
 
 FROM debian:${DEBIAN_VERSION}-slim
 
+LABEL org.opencontainers.image.source="https://github.com/kogeler/substrate-cross-compiler-env"
+
 ARG DEBIAN_VERSION=bullseye
 ARG RUST_STABLE_VERSION="1.72.0"
 ARG CLANG_VERSION="15"
