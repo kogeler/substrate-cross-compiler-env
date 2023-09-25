@@ -3,7 +3,8 @@ ARG DEBIAN_VERSION=bullseye
 FROM debian:${DEBIAN_VERSION}-slim
 
 ARG DEBIAN_VERSION=bullseye
-ARG ENV RUST_STABLE_VERSION="1.72.0"
+ARG RUST_STABLE_VERSION="1.72.0"
+ARG CLANG_VERSION="15"
 
 # Set environment variables
 ENV SHELL="/bin/bash"
@@ -14,8 +15,8 @@ ENV CARGO_HOME="/opt/cargo_home"
 ENV CARGO_TARGET_DIR="/opt/cargo_target"
 ENV PATH="$PATH:$CARGO_HOME/bin"
 
-ENV CC="clang-15"
-ENV CXX="clang-15"
+ENV CC="clang-$CLANG_VERSION"
+ENV CXX="clang-$CLANG_VERSION"
 
 ENV SKIP_WASM_BUILD=1
 ENV RUST_BACKTRACE=1
@@ -31,11 +32,11 @@ RUN set -eux && \
         # tools
         git bash sudo nano \
         # compilers
-        clang-15 lldb-15 lld-15 libclang-15-dev make \
+        clang-$CLANG_VERSION lldb-$CLANG_VERSION lld-$CLANG_VERSION libclang-$CLANG_VERSION-dev make \
         # dependencies
         protobuf-compiler && \
-    update-alternatives --install /usr/bin/cc cc /usr/bin/clang-15 100 && \
-    update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-15 100 && \
+    update-alternatives --install /usr/bin/cc cc /usr/bin/clang-$CLANG_VERSION 100 && \
+    update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-$CLANG_VERSION 100 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd rust --create-home -u 1000 --groups sudo
