@@ -26,12 +26,12 @@ RUN set -eux && \
     apt-get -y update && \
     apt-get install --no-install-recommends -y \
         # tools
-        curl ca-certificates git bash sudo nano \
+        curl ca-certificates git bash sudo nano gh \
         # compilers
         build-essential libclang-dev \
         # dependencies
         protobuf-compiler \
-        # cross
+        # cross compiler
         g++-aarch64-linux-gnu libc6-dev-arm64-cross && \
     rm -rf /var/lib/apt/lists/*
 
@@ -43,6 +43,7 @@ USER rust
 # Install rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain ${RUST_STABLE_VERSION} && \
     rustup target add aarch64-unknown-linux-gnu --toolchain ${RUST_STABLE_VERSION}
+WORKDIR /home/rust
 
 ENTRYPOINT ["/bin/bash"]
 

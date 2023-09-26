@@ -8,29 +8,34 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
-
+  RELEASE_REF: refs/heads/main
 jobs:
-  docker-images:
+  build-docker-images:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    outputs:
+      image-name: ${{ steps.env-vars.outputs.image-name }}
     strategy:
       fail-fast: false
       matrix:
-        debian-versions: [buster, bullseye, bookworm]
+        debian-versions: [bullseye, bookworm]
         rust-versions: [1.72.0]
         clang-versions: [15, 16]
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - name: Set environmental variables
+        id: env-vars
         run: |
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> $GITHUB_ENV
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
+          echo "image-name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "NODE_GIT_REF=$(cat release-version.txt | tr -d '\n')" >> "$GITHUB_ENV"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Checkout repository
-        uses: actions/checkout@v4
       - name: Log in to Container registry
         uses: docker/login-action@v3
         with:
@@ -50,7 +55,7 @@ jobs:
           push: false
           load: true
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: | 
+          build-args: |
             DEBIAN_VERSION=${{ matrix.debian-versions }}
             RUST_STABLE_VERSION=${{ matrix.rust-versions }}
             CLANG_VERSION=${{ matrix.clang-versions }}
@@ -66,8 +71,77 @@ jobs:
           pull: false
           build-args: |
             IMAGE_VERSION=image-to-test:latest
-            GIT_REF=polkadot-v1.1.0
+            GIT_REF=${{ env.NODE_GIT_REF }}
           tags: test-build-image
       - name: Push Docker image
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == env.RELEASE_REF }}
         run: docker push ${{ env.FULL_IMAGE_NAME }}
+  build-binaries:
+    runs-on: ubuntu-latest
+    needs: [build-docker-images]
+    permissions:
+      contents: write
+    container:
+      image: ${{ needs.build-docker-images.outputs.image-name }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
+      env:
+        RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
+        GH_TOKEN: ${{ github.token }}
+      options: --user 0:0
+    strategy:
+      fail-fast: false
+      matrix:
+        debian-versions: [bullseye, bookworm]
+        rust-versions: [1.72.0]
+        clang-versions: [16]
+        rustc-targets: ["x86-64-v3", "x86-64-v4"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set environmental variables
+        run: |
+          NODE_GIT_REF=$(cat release-version.txt | tr -d '\n')
+          echo "NODE_GIT_REF=${NODE_GIT_REF}" >> $GITHUB_ENV
+          echo "BINARY_FILE_NAME=${NODE_GIT_REF}-${{ matrix.debian-versions }}-${{ matrix.rustc-targets }}" >> $GITHUB_ENV
+          echo "EXECUTE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-execute-worker-${{ matrix.debian-versions }}-${{ matrix.rustc-targets }}" >> $GITHUB_ENV
+          echo "PREPARE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-prepare-worker-${{ matrix.debian-versions }}-${{ matrix.rustc-targets }}" >> $GITHUB_ENV
+          git config --global --add safe.directory $(pwd)
+      - name: Checkout polkadot-sdk repository
+        uses: actions/checkout@v4
+        with:
+          repository: paritytech/polkadot-sdk
+          path: polkadot-sdk
+          ref: ${{ env.NODE_GIT_REF }}
+      - name: Build binaries
+        run: |
+          cd polkadot-sdk/polkadot
+          cargo build --release --target x86_64-unknown-linux-gnu
+          ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
+      - name: "Create release"
+        if: ${{ github.ref == env.RELEASE_REF }}
+        uses: "actions/github-script@v6"
+        with:
+          script: |
+            try {
+              const response = await github.rest.repos.createRelease({
+                draft: false,
+                generate_release_notes: true,
+                name: process.env.NODE_GIT_REF,
+                owner: context.repo.owner,
+                prerelease: false,
+                repo: context.repo.repo,
+                tag_name: process.env.NODE_GIT_REF,
+              });
+            } catch (error) {
+              core.notice(error.message);
+            }
+      - name: Upload binaries
+        if: ${{ github.ref == env.RELEASE_REF }}
+        run: |
+          BINARIES_DIR=${CARGO_TARGET_DIR}/x86_64-unknown-linux-gnu/release
+          mv ${BINARIES_DIR}/polkadot ${BINARIES_DIR}/${BINARY_FILE_NAME}
+          mv ${BINARIES_DIR}/polkadot-execute-worker ${BINARIES_DIR}/${EXECUTE_WORKER_BINARY_FILE_NAME}
+          mv ${BINARIES_DIR}/polkadot-prepare-worker ${BINARIES_DIR}/${PREPARE_WORKER_BINARY_FILE_NAME}
+          ls ${BINARIES_DIR}
+          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${BINARY_FILE_NAME}
+          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${EXECUTE_WORKER_BINARY_FILE_NAME}
+          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${PREPARE_WORKER_BINARY_FILE_NAME}
