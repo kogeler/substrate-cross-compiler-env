@@ -24,13 +24,14 @@ ENV RUST_BACKTRACE=1
 # Install dependencies
 RUN set -eux && \
     apt-get -y update && \
-    apt-get install --no-install-recommends -y curl ca-certificates && \
+    apt-get install --no-install-recommends -y curl ca-certificates apt-transport-https && \
     curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key | tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc && \
-    echo "deb http://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-$CLANG_VERSION main" >> /etc/apt/sources.list.d/llvm-toolchain-${DEBIAN_VERSION}-$CLANG_VERSION.list && \
+    echo "deb https://apt.llvm.org/${DEBIAN_VERSION}/ llvm-toolchain-${DEBIAN_VERSION}-$CLANG_VERSION main" >> /etc/apt/sources.list.d/llvm-toolchain-${DEBIAN_VERSION}-$CLANG_VERSION.list && \
+    echo "deb https://deb.debian.org/debian ${DEBIAN_VERSION}-backports main" >> /etc/apt/sources.list.d/${DEBIAN_VERSION}-backports.list && \
     apt-get -y update && \
     apt-get install --no-install-recommends -y \
         # tools
-        git bash sudo nano \
+        git bash sudo nano gh \
         # compilers
         clang-$CLANG_VERSION lldb-$CLANG_VERSION lld-$CLANG_VERSION libclang-$CLANG_VERSION-dev make \
         # dependencies
@@ -46,5 +47,6 @@ run chown -R rust:rust ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
 USER rust
 # Install rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain ${RUST_STABLE_VERSION}
+WORKDIR /home/rust
 
 ENTRYPOINT ["/bin/bash"]
