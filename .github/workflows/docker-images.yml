@@ -22,7 +22,7 @@ jobs:
       matrix:
         debian-versions: [bullseye, bookworm]
         rust-versions: [1.73.0]
-        clang-versions: [15, 16]
+        clang-versions: [16, 17]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
