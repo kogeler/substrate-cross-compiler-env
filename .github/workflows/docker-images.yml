@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.74.0]
+        rust-versions: [1.75.0]
         clang-versions: [16, 17]
     steps:
       - name: Checkout repository
@@ -91,8 +91,8 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.74.0]
-        clang-versions: [16]
+        rust-versions: [1.75.0]
+        clang-versions: [16, 17]
         rustc-targets: ["x86-64-v3", "x86-64-v4"]
     steps:
       - name: Checkout repository
@@ -101,9 +101,10 @@ jobs:
         run: |
           NODE_GIT_REF=$(cat release-version.txt | tr -d '\n')
           echo "NODE_GIT_REF=${NODE_GIT_REF}" >> $GITHUB_ENV
-          echo "BINARY_FILE_NAME=${NODE_GIT_REF}-${{ matrix.debian-versions }}-${{ matrix.rustc-targets }}" >> $GITHUB_ENV
-          echo "EXECUTE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-execute-worker-${{ matrix.debian-versions }}-${{ matrix.rustc-targets }}" >> $GITHUB_ENV
-          echo "PREPARE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-prepare-worker-${{ matrix.debian-versions }}-${{ matrix.rustc-targets }}" >> $GITHUB_ENV
+          ENV_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
+          echo "BINARY_FILE_NAME=${NODE_GIT_REF}-${ENV_VERSION}" >> $GITHUB_ENV
+          echo "EXECUTE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-execute-worker-${ENV_VERSION}" >> $GITHUB_ENV
+          echo "PREPARE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-prepare-worker-${ENV_VERSION}" >> $GITHUB_ENV
           git config --global --add safe.directory $(pwd)
       - name: Checkout polkadot-sdk repository
         uses: actions/checkout@v4
