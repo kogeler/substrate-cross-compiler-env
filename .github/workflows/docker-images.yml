@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.75.0]
+        rust-versions: [1.76.0]
         clang-versions: [16, 17]
     steps:
       - name: Checkout repository
@@ -91,7 +91,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.75.0]
+        rust-versions: [1.76.0]
         clang-versions: [16, 17]
         rustc-targets: ["x86-64-v3", "x86-64-v4"]
     steps:
