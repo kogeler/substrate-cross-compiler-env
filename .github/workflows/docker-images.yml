@@ -22,7 +22,7 @@ jobs:
       matrix:
         debian-versions: [bullseye, bookworm]
         rust-versions: [1.76.0]
-        clang-versions: [16, 17]
+        clang-versions: [17, 18]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -92,7 +92,7 @@ jobs:
       matrix:
         debian-versions: [bullseye, bookworm]
         rust-versions: [1.76.0]
-        clang-versions: [16, 17]
+        clang-versions: [17, 18]
         rustc-targets: ["x86-64-v2", "x86-64-v3", "x86-64-v4"]
     steps:
       - name: Checkout repository
