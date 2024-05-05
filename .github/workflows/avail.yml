@@ -3,7 +3,13 @@ name: Build Avail binaries
 on:
   push:
     branches:
+    paths:
+      - .github/avail.yml
+      - avail-release-version.txt
   pull_request:
+    paths:
+      - .github/avail.yml
+      - avail-release-version.txt
 
 env:
   RELEASE_REF: refs/heads/avail
