@@ -15,7 +15,7 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ${{ needs.build-docker-images.outputs.image-name }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
+      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
       env:
         RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
         GH_TOKEN: ${{ github.token }}
