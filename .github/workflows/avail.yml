@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ghcr.io/substrate-cross-compiler-env:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
+      image: ghcr.io/kogeler/substrate-cross-compiler-env:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
       env:
         RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
         GH_TOKEN: ${{ github.token }}
