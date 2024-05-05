@@ -53,7 +53,7 @@ jobs:
         run: |
           cd git-content
           unset SKIP_WASM_BUILD
-          cargo build --release --locked --target x86_64-unknown-linux-gnu
+          cargo build --release --target x86_64-unknown-linux-gnu
           ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
       - name: "Create release"
         if: ${{ github.ref == env.RELEASE_REF }}
