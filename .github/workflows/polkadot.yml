@@ -1,14 +1,14 @@
-name: Build and push Docker image
+name: Build Docker images and Polkadot binaries
 
 on:
   push:
     branches:
     paths:
-      - .github/docker-images.yml
+      - .github/polkadot.yml
       - release-version.txt
   pull_request:
     paths:
-      - .github/docker-images.yml
+      - .github/polkadot.yml
       - release-version.txt
 
 env:
