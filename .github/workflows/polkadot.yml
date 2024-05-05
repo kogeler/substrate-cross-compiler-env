@@ -4,11 +4,11 @@ on:
   push:
     branches:
     paths:
-      - .github/polkadot.yml
+      - .github/workflows/polkadot.yml
       - release-version.txt
   pull_request:
     paths:
-      - .github/polkadot.yml
+      - .github/workflows/polkadot.yml
       - release-version.txt
 
 env:
