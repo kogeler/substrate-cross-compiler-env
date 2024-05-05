@@ -6,8 +6,6 @@ on:
   pull_request:
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
   RELEASE_REF: refs/heads/avail
 jobs:
   build-binaries:
@@ -15,7 +13,7 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
+      image: ghcr.io/substrate-cross-compiler-env:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
       env:
         RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
         GH_TOKEN: ${{ github.token }}
