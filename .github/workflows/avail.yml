@@ -12,7 +12,7 @@ on:
       - avail-release-version.txt
 
 env:
-  RELEASE_REF: refs/heads/avail
+  RELEASE_REF: refs/heads/main
 jobs:
   build-binaries:
     runs-on: ubuntu-latest
@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bookworm]
-        rust-versions: [1.77.2]
+        rust-versions: [1.78.0]
         clang-versions: [17]
         rustc-targets: ["x86-64-v2", "x86-64-v3"]
     steps:
@@ -52,7 +52,6 @@ jobs:
       - name: Build binaries
         run: |
           cd git-content
-          unset SKIP_WASM_BUILD
           cargo build --release --locked --target x86_64-unknown-linux-gnu
           ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
       - name: "Create release"
