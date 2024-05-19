@@ -3,8 +3,8 @@ ARG DEBIAN_VERSION=bullseye
 FROM debian:${DEBIAN_VERSION}-slim
 
 ARG DEBIAN_VERSION=bullseye
-ARG RUST_STABLE_VERSION="1.72.0"
-ARG CLANG_VERSION="15"
+ARG RUST_STABLE_VERSION="1.78.0"
+ARG CLANG_VERSION="17"
 
 # Set environment variables
 ENV SHELL="/bin/bash"
@@ -18,7 +18,7 @@ ENV PATH="$PATH:$CARGO_HOME/bin"
 ENV CC="clang-$CLANG_VERSION"
 ENV CXX="clang-$CLANG_VERSION"
 
-ENV SKIP_WASM_BUILD=1
+#ENV SKIP_WASM_BUILD=1
 ENV RUST_BACKTRACE=1
 
 # Install dependencies
@@ -46,7 +46,11 @@ RUN mkdir ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
 run chown -R rust:rust ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
 USER rust
 # Install rust
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain ${RUST_STABLE_VERSION}
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain ${RUST_STABLE_VERSION} && \
+    rustup component add rust-src --toolchain ${RUST_STABLE_VERSION}-x86_64-unknown-linux-gnu && \
+    rustup target add wasm32-unknown-unknown --toolchain ${RUST_STABLE_VERSION}
+RUN command -v wasm-gc || \
+    cargo +${RUST_STABLE_VERSION} install --git https://github.com/alexcrichton/wasm-gc --force
 WORKDIR /home/rust
 
 ENTRYPOINT ["/bin/bash"]

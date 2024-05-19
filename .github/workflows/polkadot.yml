@@ -1,9 +1,17 @@
-name: Build and push Docker image
+name: Build Docker images and Polkadot binaries
 
 on:
   push:
     branches:
+    paths:
+      - .github/workflows/polkadot.yml
+      - dockerfiles/*
+      - release-version.txt
   pull_request:
+    paths:
+      - .github/workflows/polkadot.yml
+      - dockerfiles/*
+      - release-version.txt
 
 env:
   REGISTRY: ghcr.io
@@ -21,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.77.2]
+        rust-versions: [1.78.0]
         clang-versions: [17, 18]
     steps:
       - name: Checkout repository
@@ -91,7 +99,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.77.2]
+        rust-versions: [1.78.0]
         clang-versions: [17, 18]
         rustc-targets: ["x86-64-v2", "x86-64-v3", "x86-64-v4"]
     steps:

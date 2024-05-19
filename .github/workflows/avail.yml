@@ -1,0 +1,81 @@
+name: Build Avail binaries
+
+on:
+  push:
+    branches:
+    paths:
+      - .github/workflows/avail.yml
+      - avail-release-version.txt
+  pull_request:
+    paths:
+      - .github/workflows/avail.yml
+      - avail-release-version.txt
+
+env:
+  RELEASE_REF: refs/heads/main
+jobs:
+  build-binaries:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    container:
+      image: ghcr.io/kogeler/substrate-cross-compiler-env:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
+      env:
+        RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
+        GH_TOKEN: ${{ github.token }}
+      options: --user 0:0
+    strategy:
+      fail-fast: false
+      matrix:
+        debian-versions: [bookworm]
+        rust-versions: [1.78.0]
+        clang-versions: [17]
+        rustc-targets: ["x86-64-v2", "x86-64-v3"]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set environmental variables
+        run: |
+          NODE_GIT_REF=$(cat avail-release-version.txt | tr -d '\n')
+          echo "NODE_GIT_REF=${NODE_GIT_REF}" >> $GITHUB_ENV
+          ENV_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
+          echo "BINARY_FILE_NAME=${NODE_GIT_REF}-${ENV_VERSION}" >> $GITHUB_ENV
+          echo "EXECUTE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-execute-worker-${ENV_VERSION}" >> $GITHUB_ENV
+          echo "PREPARE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-prepare-worker-${ENV_VERSION}" >> $GITHUB_ENV
+          git config --global --add safe.directory $(pwd)
+      - name: Checkout polkadot-sdk repository
+        uses: actions/checkout@v4
+        with:
+          repository: availproject/avail
+          path: git-content
+          ref: ${{ env.NODE_GIT_REF }}
+      - name: Build binaries
+        run: |
+          cd git-content
+          cargo build --release --locked --target x86_64-unknown-linux-gnu
+          ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
+      - name: "Create release"
+        if: ${{ github.ref == env.RELEASE_REF }}
+        uses: "actions/github-script@v6"
+        with:
+          script: |
+            try {
+              const response = await github.rest.repos.createRelease({
+                draft: false,
+                generate_release_notes: true,
+                name: 'avail-' + process.env.NODE_GIT_REF,
+                owner: context.repo.owner,
+                prerelease: false,
+                repo: context.repo.repo,
+                tag_name: 'avail-' + process.env.NODE_GIT_REF,
+              });
+            } catch (error) {
+              core.notice(error.message);
+            }
+      - name: Upload binaries
+        if: ${{ github.ref == env.RELEASE_REF }}
+        run: |
+          BINARIES_DIR=${CARGO_TARGET_DIR}/x86_64-unknown-linux-gnu/release
+          mv ${BINARIES_DIR}/avail-node ${BINARIES_DIR}/avail-${BINARY_FILE_NAME}
+          ls ${BINARIES_DIR}
+          gh release upload avail-${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/avail-${BINARY_FILE_NAME}
