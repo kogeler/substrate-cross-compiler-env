@@ -5,11 +5,13 @@ on:
     branches:
     paths:
       - .github/workflows/polkadot.yml
+      - dockerfiles/Dockerfile.test
       - dockerfiles/Dockerfile.amd64
       - release-version.txt
   pull_request:
     paths:
       - .github/workflows/polkadot.yml
+      - dockerfiles/Dockerfile.test
       - dockerfiles/Dockerfile.amd64
       - release-version.txt
 
@@ -17,7 +19,6 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   RELEASE_REF: refs/heads/main
-  SKIP_WASM_BUILD: "1"
 jobs:
   build-docker-images:
     runs-on: ubuntu-latest
@@ -114,6 +115,7 @@ jobs:
           echo "BINARY_FILE_NAME=${NODE_GIT_REF}-${ENV_VERSION}" >> $GITHUB_ENV
           echo "EXECUTE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-execute-worker-${ENV_VERSION}" >> $GITHUB_ENV
           echo "PREPARE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-prepare-worker-${ENV_VERSION}" >> $GITHUB_ENV
+          echo "WASM_BUILD_WORKSPACE_HINT=$(pwd)/polkadot-sdk" >> $GITHUB_ENV
           git config --global --add safe.directory $(pwd)
       - name: Checkout polkadot-sdk repository
         uses: actions/checkout@v4
@@ -122,9 +124,9 @@ jobs:
           path: polkadot-sdk
           ref: ${{ env.NODE_GIT_REF }}
       - name: Build binaries
+        working-directory: ./polkadot-sdk
         run: |
-          cd polkadot-sdk/polkadot
-          cargo build --release --target x86_64-unknown-linux-gnu
+          cargo build --profile production --locked --package polkadot --bin polkadot --target x86_64-unknown-linux-gnu
           ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
       - name: "Create release"
         if: ${{ github.ref == env.RELEASE_REF }}
