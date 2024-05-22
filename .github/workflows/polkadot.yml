@@ -5,12 +5,12 @@ on:
     branches:
     paths:
       - .github/workflows/polkadot.yml
-      - dockerfiles/*
+      - dockerfiles/Dockerfile.amd64
       - release-version.txt
   pull_request:
     paths:
       - .github/workflows/polkadot.yml
-      - dockerfiles/*
+      - dockerfiles/Dockerfile.amd64
       - release-version.txt
 
 env:
