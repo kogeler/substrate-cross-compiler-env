@@ -17,6 +17,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   RELEASE_REF: refs/heads/main
+  SKIP_WASM_BUILD: "1"
 jobs:
   build-docker-images:
     runs-on: ubuntu-latest
