@@ -154,6 +154,6 @@ jobs:
           mv ${BINARIES_DIR}/polkadot-execute-worker ${BINARIES_DIR}/${EXECUTE_WORKER_BINARY_FILE_NAME}
           mv ${BINARIES_DIR}/polkadot-prepare-worker ${BINARIES_DIR}/${PREPARE_WORKER_BINARY_FILE_NAME}
           ls ${BINARIES_DIR}
-          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${BINARY_FILE_NAME}
-          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${EXECUTE_WORKER_BINARY_FILE_NAME}
-          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${PREPARE_WORKER_BINARY_FILE_NAME}
+          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${BINARY_FILE_NAME} --clobber
+          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${EXECUTE_WORKER_BINARY_FILE_NAME} --clobber
+          gh release upload ${{ env.NODE_GIT_REF }} ${BINARIES_DIR}/${PREPARE_WORKER_BINARY_FILE_NAME} --clobber
