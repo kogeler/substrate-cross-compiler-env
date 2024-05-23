@@ -72,17 +72,6 @@ jobs:
           tags: ${{ env.FULL_IMAGE_NAME }},image-to-test:latest
       - name: Switch to default Docker builder
         run: docker buildx use default
-      - name: Build node to test Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: dockerfiles
-          file: dockerfiles/Dockerfile.test
-          push: false
-          pull: false
-          build-args: |
-            IMAGE_VERSION=image-to-test:latest
-            GIT_REF=${{ env.NODE_GIT_REF }}
-          tags: test-build-image
       - name: Push Docker image
         if: ${{ github.ref == env.RELEASE_REF }}
         run: docker push ${{ env.FULL_IMAGE_NAME }}
@@ -127,7 +116,7 @@ jobs:
         working-directory: ./polkadot-sdk
         run: |
           cargo build --profile production --locked --package polkadot --bin polkadot --target x86_64-unknown-linux-gnu
-          ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
+          ls /opt/cargo_target/x86_64-unknown-linux-gnu
       - name: "Create release"
         if: ${{ github.ref == env.RELEASE_REF }}
         uses: "actions/github-script@v6"
@@ -149,7 +138,7 @@ jobs:
       - name: Upload binaries
         if: ${{ github.ref == env.RELEASE_REF }}
         run: |
-          BINARIES_DIR=${CARGO_TARGET_DIR}/x86_64-unknown-linux-gnu/release
+          BINARIES_DIR=${CARGO_TARGET_DIR}/x86_64-unknown-linux-gnu/production
           mv ${BINARIES_DIR}/polkadot ${BINARIES_DIR}/${BINARY_FILE_NAME}
           mv ${BINARIES_DIR}/polkadot-execute-worker ${BINARIES_DIR}/${EXECUTE_WORKER_BINARY_FILE_NAME}
           mv ${BINARIES_DIR}/polkadot-prepare-worker ${BINARIES_DIR}/${PREPARE_WORKER_BINARY_FILE_NAME}
