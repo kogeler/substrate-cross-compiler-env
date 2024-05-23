@@ -5,12 +5,14 @@ on:
     branches:
     paths:
       - .github/workflows/polkadot.yml
-      - dockerfiles/*
+      - dockerfiles/Dockerfile.test
+      - dockerfiles/Dockerfile.amd64
       - release-version.txt
   pull_request:
     paths:
       - .github/workflows/polkadot.yml
-      - dockerfiles/*
+      - dockerfiles/Dockerfile.test
+      - dockerfiles/Dockerfile.amd64
       - release-version.txt
 
 env:
@@ -113,6 +115,7 @@ jobs:
           echo "BINARY_FILE_NAME=${NODE_GIT_REF}-${ENV_VERSION}" >> $GITHUB_ENV
           echo "EXECUTE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-execute-worker-${ENV_VERSION}" >> $GITHUB_ENV
           echo "PREPARE_WORKER_BINARY_FILE_NAME=${NODE_GIT_REF}-prepare-worker-${ENV_VERSION}" >> $GITHUB_ENV
+          echo "WASM_BUILD_WORKSPACE_HINT=$(pwd)/polkadot-sdk" >> $GITHUB_ENV
           git config --global --add safe.directory $(pwd)
       - name: Checkout polkadot-sdk repository
         uses: actions/checkout@v4
@@ -121,10 +124,10 @@ jobs:
           path: polkadot-sdk
           ref: ${{ env.NODE_GIT_REF }}
       - name: Build binaries
+        working-directory: ./polkadot-sdk
         run: |
-          cd polkadot-sdk/polkadot
-          cargo build --release --target x86_64-unknown-linux-gnu
-          ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
+          cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --target x86_64-unknown-linux-gnu
+          ls /opt/cargo_target/x86_64-unknown-linux-gnu/production
       - name: "Create release"
         if: ${{ github.ref == env.RELEASE_REF }}
         uses: "actions/github-script@v6"
@@ -146,7 +149,7 @@ jobs:
       - name: Upload binaries
         if: ${{ github.ref == env.RELEASE_REF }}
         run: |
-          BINARIES_DIR=${CARGO_TARGET_DIR}/x86_64-unknown-linux-gnu/release
+          BINARIES_DIR=${CARGO_TARGET_DIR}/x86_64-unknown-linux-gnu/production
           mv ${BINARIES_DIR}/polkadot ${BINARIES_DIR}/${BINARY_FILE_NAME}
           mv ${BINARIES_DIR}/polkadot-execute-worker ${BINARIES_DIR}/${EXECUTE_WORKER_BINARY_FILE_NAME}
           mv ${BINARIES_DIR}/polkadot-prepare-worker ${BINARIES_DIR}/${PREPARE_WORKER_BINARY_FILE_NAME}
