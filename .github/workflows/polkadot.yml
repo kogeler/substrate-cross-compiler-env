@@ -42,22 +42,37 @@ jobs:
           echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
           echo "image-name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
           echo "NODE_GIT_REF=$(cat release-version.txt | tr -d '\n')" >> "$GITHUB_ENV"
+      - name: Check Docker image
+        id: image_check
+        run: |
+          if docker manifest inspect "${FULL_IMAGE_NAME}" > /dev/null 2>&1; then
+            echo "Image ${FULL_IMAGE_NAME} exists in the registry."
+            echo "::set-output name=continue::false"
+          else
+            echo "Image ${FULL_IMAGE_NAME} does not exist in the registry."
+            echo "::set-output name=continue::true"
+          fi
       - name: Set up QEMU
+        if: steps.image_check.outputs.continue == 'true'
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
+        if: steps.image_check.outputs.continue == 'true'
         uses: docker/setup-buildx-action@v3
       - name: Log in to Container registry
+        if: steps.image_check.outputs.continue == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Extract metadata (tags, labels) for Docker
+        if: steps.image_check.outputs.continue == 'true'
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
       - name: Build and push Docker image
+        if: steps.image_check.outputs.continue == 'true'
         uses: docker/build-push-action@v5
         with:
           context: dockerfiles
@@ -71,8 +86,10 @@ jobs:
             CLANG_VERSION=${{ matrix.clang-versions }}
           tags: ${{ env.FULL_IMAGE_NAME }},image-to-test:latest
       - name: Switch to default Docker builder
+        if: steps.image_check.outputs.continue == 'true'
         run: docker buildx use default
       - name: Build node to test Docker image
+        if: steps.image_check.outputs.continue == 'true'
         uses: docker/build-push-action@v5
         with:
           context: dockerfiles
@@ -84,7 +101,7 @@ jobs:
             GIT_REF=${{ env.NODE_GIT_REF }}
           tags: test-build-image
       - name: Push Docker image
-        if: ${{ github.ref == env.RELEASE_REF }}
+        if: ${{ steps.image_check.outputs.continue == 'true' && github.ref == env.RELEASE_REF }}
         run: docker push ${{ env.FULL_IMAGE_NAME }}
   build-binaries:
     runs-on: ubuntu-latest
@@ -101,7 +118,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.78.0]
+        rust-versions: [1.79.0]
         clang-versions: [17, 18]
         rustc-targets: ["x86-64-v2", "x86-64-v3", "x86-64-v4"]
     steps:
