@@ -98,7 +98,7 @@ jobs:
           pull: false
           build-args: |
             IMAGE_VERSION=image-to-test:latest
-            GIT_REPO={{ env.CODE_GIT_REPO }}
+            GIT_REPO=${{ env.CODE_GIT_REPO }}
             GIT_REF=${{ env.CODE_GIT_REF }}
           tags: test-build-image
       - name: Push Docker image
