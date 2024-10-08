@@ -1,0 +1,32 @@
+ARG DEBIAN_VERSION=bookworm
+
+FROM debian:${DEBIAN_VERSION}-slim
+
+ARG DEBIAN_VERSION=bookworm
+
+# Set environment variables
+ENV SHELL="/bin/bash"
+ENV DEBIAN_FRONTEND="noninteractive"
+ENV RUST_BACKTRACE=1
+
+# Install dependencies
+RUN set -eux && \
+    apt-get -y update && \
+    apt-get install --no-install-recommends -y libssl-dev bash curl ca-certificates apt-transport-https && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY . /usr/local/bin/
+RUN chmod -R a+rx "/usr/local/bin"
+
+RUN useradd node --create-home -u 1000
+USER node
+WORKDIR /home/node
+
+#RUN /usr/local/bin/polkadot --version
+#RUN /usr/local/bin/polkadot-prepare-worker --version
+#RUN /usr/local/bin/polkadot-execute-worker --version
+
+EXPOSE 30333 9944 9615
+
+ENTRYPOINT ["/usr/local/bin/polkadot"]
+CMD ["--help"]

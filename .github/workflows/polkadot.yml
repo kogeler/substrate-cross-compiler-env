@@ -1,4 +1,4 @@
-name: Build Docker images and Polkadot binaries
+name: Build Polkadot binaries and images
 
 on:
   push:
@@ -7,25 +7,25 @@ on:
       - .github/workflows/polkadot.yml
       - dockerfiles/Dockerfile-env-test
       - dockerfiles/Dockerfile-env-amd64
-      - release-version.txt
+      - config.yml
   pull_request:
     paths:
       - .github/workflows/polkadot.yml
       - dockerfiles/Dockerfile-env-test
       - dockerfiles/Dockerfile-env-amd64
-      - release-version.txt
+      - config.yml
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
   RELEASE_REF: refs/heads/main
-  CODE_GIT_REPO: paritytech/polkadot-sdk
 jobs:
   build-docker-images:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    env:
+      ENV_IMAGE_NAME: kogeler/substrate-cross-compiler-env
     outputs:
       image-name: ${{ steps.env-vars.outputs.image-name }}
     strategy:
@@ -40,16 +40,17 @@ jobs:
       - name: Set environmental variables
         id: env-vars
         run: |
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
-          echo "image-name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
-          echo "CODE_GIT_REF=$(cat release-version.txt | tr -d '\n')" >> "$GITHUB_ENV"
+          echo "ENV_FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
+          echo "image-name=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.polkadot.git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
+          echo "CODE_GIT_REF=$(cat config.yml | yq -r '.polkadot.git_ref' | tr -d '\n')" >> "$GITHUB_ENV"
       - name: Check Docker image
         run: |
-          if docker manifest inspect "${FULL_IMAGE_NAME}" > /dev/null 2>&1; then
-            echo "Image ${FULL_IMAGE_NAME} exists in the registry."
+          if docker manifest inspect "${ENV_FULL_IMAGE_NAME}" > /dev/null 2>&1; then
+            echo "Image ${ENV_FULL_IMAGE_NAME} exists in the registry."
             echo "CONTINUE_IMAGE_BUILD=false" >> "$GITHUB_ENV"
           else
-            echo "Image ${FULL_IMAGE_NAME} does not exist in the registry."
+            echo "Image ${ENV_FULL_IMAGE_NAME} does not exist in the registry."
             echo "CONTINUE_IMAGE_BUILD=true" >> "$GITHUB_ENV"
           fi
       - name: Set up QEMU
@@ -64,16 +65,16 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ github.token }}
       - name: Extract metadata (tags, labels) for Docker
         if: env.CONTINUE_IMAGE_BUILD == 'true'
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}
       - name: Build and push Docker image
         if: env.CONTINUE_IMAGE_BUILD == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: dockerfiles
           file: dockerfiles/Dockerfile-env-amd64
@@ -84,13 +85,13 @@ jobs:
             DEBIAN_VERSION=${{ matrix.debian-versions }}
             RUST_STABLE_VERSION=${{ matrix.rust-versions }}
             CLANG_VERSION=${{ matrix.clang-versions }}
-          tags: ${{ env.FULL_IMAGE_NAME }},image-to-test:latest
+          tags: ${{ env.ENV_FULL_IMAGE_NAME }},image-to-test:latest
       - name: Switch to default Docker builder
         if: env.CONTINUE_IMAGE_BUILD == 'true'
         run: docker buildx use default
       - name: Build node to test Docker image
         if: env.CONTINUE_IMAGE_BUILD == 'true'
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: dockerfiles
           file: dockerfiles/Dockerfile-env-test
@@ -98,17 +99,18 @@ jobs:
           pull: false
           build-args: |
             IMAGE_VERSION=image-to-test:latest
-            GIT_REPO={{ env.CODE_GIT_REPO }}
+            GIT_REPO=${{ env.CODE_GIT_REPO }}
             GIT_REF=${{ env.CODE_GIT_REF }}
           tags: test-build-image
       - name: Push Docker image
         if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' && github.ref == env.RELEASE_REF }}
-        run: docker push ${{ env.FULL_IMAGE_NAME }}
+        run: docker push ${{ env.ENV_FULL_IMAGE_NAME }}
   build-binaries:
     runs-on: ubuntu-latest
     needs: [build-docker-images]
     permissions:
       contents: write
+      packages: write
     container:
       image: ${{ needs.build-docker-images.outputs.image-name }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
       options: --user 0:0 --privileged -v /var/run/docker.sock:/var/run/docker.sock
@@ -124,34 +126,38 @@ jobs:
         uses: actions/checkout@v4
       - name: Set environmental variables
         run: |
-          CODE_GIT_REF=$(cat release-version.txt | tr -d '\n')
+          echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.polkadot.git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
+          CODE_GIT_REF=$(cat config.yml | yq -r '.polkadot.git_ref' | tr -d '\n')
           echo "CODE_GIT_REF=${CODE_GIT_REF}" >> $GITHUB_ENV
-          ENV_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
-          echo "BINARY_FILE_NAME=${CODE_GIT_REF}-${ENV_VERSION}" >> $GITHUB_ENV
-          echo "EXECUTE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-execute-worker-${ENV_VERSION}" >> $GITHUB_ENV
-          echo "PREPARE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-prepare-worker-${ENV_VERSION}" >> $GITHUB_ENV
-          #git config --global --add safe.directory $(pwd)
-      - name: Checkout polkadot-sdk repository
+          IMAGE_NAME=$(cat config.yml | yq -r '.polkadot.image_name' | tr -d '\n')
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          BUILD_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
+          echo "BINARY_FILE_NAME=${CODE_GIT_REF}-${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "EXECUTE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-execute-worker-${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "PREPARE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-prepare-worker-${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME}:${BUILD_VERSION}" >> "$GITHUB_ENV"
+          git config --global --add safe.directory $(pwd)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           repository: ${{ env.CODE_GIT_REPO }} 
-          path: polkadot-sdk
+          path: git-content
           ref: ${{ env.CODE_GIT_REF }}
       - name: Build binaries
-        working-directory: ./polkadot-sdk
+        working-directory: ./git-content
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
         run: |
-          WASM_BUILD_WORKSPACE_HINT=$(pwd)
+          export WASM_BUILD_WORKSPACE_HINT=$(pwd)
           env
           cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --target x86_64-unknown-linux-gnu
-          BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
+          export BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
           ls ${BINARIES_DIR}
           mkdir ${GITHUB_WORKSPACE}/artifacts
           cp ${BINARIES_DIR}/polkadot ${GITHUB_WORKSPACE}/artifacts
           cp ${BINARIES_DIR}/polkadot-execute-worker ${GITHUB_WORKSPACE}/artifacts
           cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
-      - name: "Create release"
+      - name: Create GitHub release
         if: ${{ github.ref == env.RELEASE_REF }}
         uses: "actions/github-script@v6"
         with:
@@ -169,14 +175,37 @@ jobs:
             } catch (error) {
               core.notice(error.message);
             }
-      - name: Upload binaries to release
+      - name: Upload binaries to GitHub release
         if: ${{ github.ref == env.RELEASE_REF }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp artifacts/polkadot artifacts/${BINARY_FILE_NAME}
-          cp artifacts/polkadot-execute-worker artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME}
-          cp artifacts/polkadot-prepare-worker artifacts/${PREPARE_WORKER_BINARY_FILE_NAME}
-          gh release upload ${{ env.CODE_GIT_REF }} artifacts/${BINARY_FILE_NAME} --clobber
-          gh release upload ${{ env.CODE_GIT_REF }} artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME} --clobber
-          gh release upload ${{ env.CODE_GIT_REF }} artifacts/${PREPARE_WORKER_BINARY_FILE_NAME} --clobber
+          mkdir gh_artifacts
+          cp artifacts/polkadot gh_artifacts/${BINARY_FILE_NAME}
+          cp artifacts/polkadot-execute-worker gh_artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME}
+          cp artifacts/polkadot-prepare-worker gh_artifacts/${PREPARE_WORKER_BINARY_FILE_NAME}
+          gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${BINARY_FILE_NAME} --clobber
+          gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME} --clobber
+          gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${PREPARE_WORKER_BINARY_FILE_NAME} --clobber
+      - name: Log in to container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          file: dockerfiles/Dockerfile-amd64
+          context: artifacts
+          push: ${{ github.ref == env.RELEASE_REF }}
+          load: true
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            DEBIAN_VERSION=${{ matrix.debian-versions }}
+          tags: ${{ env.FULL_IMAGE_NAME }}
