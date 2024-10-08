@@ -194,16 +194,13 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      # - name: Build and push Docker image
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     context: dockerfiles
-      #     file: dockerfiles/Dockerfile-env-amd64
-      #     push: true
-      #     load: true
-      #     labels: ${{ steps.meta.outputs.labels }}
-      #     build-args: |
-      #       DEBIAN_VERSION=${{ matrix.debian-versions }}
-      #       RUST_STABLE_VERSION=${{ matrix.rust-versions }}
-      #       CLANG_VERSION=${{ matrix.clang-versions }}
-      #     tags: ${{ env.ENV_FULL_IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          file: dockerfiles/Dockerfile-amd64
+          push: true
+          load: true
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            DEBIAN_VERSION=${{ matrix.debian-versions }}
+          tags: ${{ env.FULL_IMAGE_NAME }}
