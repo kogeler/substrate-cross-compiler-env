@@ -17,7 +17,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  #ENV_IMAGE_NAME: ${{ github.repository }}
+  ENV_IMAGE_NAME: kogeler/substrate-cross-compiler-env
+  IMAGE_NAME: kogeler/polkadot
   RELEASE_REF: refs/heads/main
   CODE_GIT_REPO: paritytech/polkadot-sdk
 jobs:
@@ -40,16 +42,16 @@ jobs:
       - name: Set environmental variables
         id: env-vars
         run: |
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:env-debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
-          echo "image-name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "ENV_FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
+          echo "image-name=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
           echo "CODE_GIT_REF=$(cat release-version.txt | tr -d '\n')" >> "$GITHUB_ENV"
       - name: Check Docker image
         run: |
-          if docker manifest inspect "${FULL_IMAGE_NAME}" > /dev/null 2>&1; then
-            echo "Image ${FULL_IMAGE_NAME} exists in the registry."
+          if docker manifest inspect "${ENV_FULL_IMAGE_NAME}" > /dev/null 2>&1; then
+            echo "Image ${ENV_FULL_IMAGE_NAME} exists in the registry."
             echo "CONTINUE_IMAGE_BUILD=false" >> "$GITHUB_ENV"
           else
-            echo "Image ${FULL_IMAGE_NAME} does not exist in the registry."
+            echo "Image ${ENV_FULL_IMAGE_NAME} does not exist in the registry."
             echo "CONTINUE_IMAGE_BUILD=true" >> "$GITHUB_ENV"
           fi
       - name: Set up QEMU
@@ -64,7 +66,7 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ github.token }}
       - name: Extract metadata (tags, labels) for Docker
         if: env.CONTINUE_IMAGE_BUILD == 'true'
         id: meta
@@ -84,7 +86,7 @@ jobs:
             DEBIAN_VERSION=${{ matrix.debian-versions }}
             RUST_STABLE_VERSION=${{ matrix.rust-versions }}
             CLANG_VERSION=${{ matrix.clang-versions }}
-          tags: ${{ env.FULL_IMAGE_NAME }},image-to-test:latest
+          tags: ${{ env.ENV_FULL_IMAGE_NAME }},image-to-test:latest
       - name: Switch to default Docker builder
         if: env.CONTINUE_IMAGE_BUILD == 'true'
         run: docker buildx use default
@@ -103,14 +105,14 @@ jobs:
           tags: test-build-image
       - name: Push Docker image
         if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' && github.ref == env.RELEASE_REF }}
-        run: docker push ${{ env.FULL_IMAGE_NAME }}
+        run: docker push ${{ env.ENV_FULL_IMAGE_NAME }}
   build-binaries:
     runs-on: ubuntu-latest
     needs: [build-docker-images]
     permissions:
       contents: write
     container:
-      image: ${{ needs.build-docker-images.outputs.image-name }}:env-debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
+      image: ${{ needs.build-docker-images.outputs.image-name }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
       options: --user 0:0 --privileged -v /var/run/docker.sock:/var/run/docker.sock
     strategy:
       fail-fast: false
@@ -130,6 +132,7 @@ jobs:
           echo "BINARY_FILE_NAME=${CODE_GIT_REF}-${ENV_VERSION}" >> $GITHUB_ENV
           echo "EXECUTE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-execute-worker-${ENV_VERSION}" >> $GITHUB_ENV
           echo "PREPARE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-prepare-worker-${ENV_VERSION}" >> $GITHUB_ENV
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:env-debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
           #git config --global --add safe.directory $(pwd)
       - name: Checkout polkadot-sdk repository
         uses: actions/checkout@v4
