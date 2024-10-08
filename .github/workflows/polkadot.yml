@@ -40,7 +40,7 @@ jobs:
       - name: Set environmental variables
         id: env-vars
         run: |
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:env-debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
           echo "image-name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
           echo "CODE_GIT_REF=$(cat release-version.txt | tr -d '\n')" >> "$GITHUB_ENV"
       - name: Check Docker image
@@ -110,7 +110,7 @@ jobs:
     permissions:
       contents: write
     container:
-      image: ${{ needs.build-docker-images.outputs.image-name }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
+      image: ${{ needs.build-docker-images.outputs.image-name }}:env-debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
       options: --user 0:0 --privileged -v /var/run/docker.sock:/var/run/docker.sock
     strategy:
       fail-fast: false
