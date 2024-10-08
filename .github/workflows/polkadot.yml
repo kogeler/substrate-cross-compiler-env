@@ -145,7 +145,7 @@ jobs:
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
         run: |
-          WASM_BUILD_WORKSPACE_HINT=$(pwd)
+          export WASM_BUILD_WORKSPACE_HINT=$(pwd)
           env
           cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --target x86_64-unknown-linux-gnu
           BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
