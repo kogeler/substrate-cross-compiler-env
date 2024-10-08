@@ -1,0 +1,28 @@
+ARG DEBIAN_VERSION=bullseye
+
+FROM debian:${DEBIAN_VERSION}-slim
+
+ARG DEBIAN_VERSION=bullseye
+
+# Set environment variables
+ENV SHELL="/bin/bash"
+ENV DEBIAN_FRONTEND="noninteractive"
+
+ENV RUST_BACKTRACE=1
+
+# Install dependencies
+RUN set -eux && \
+    apt-get -y update && \
+    apt-get install --no-install-recommends -y curl ca-certificates apt-transport-https && \
+    echo "deb https://deb.debian.org/debian ${DEBIAN_VERSION}-backports main" >> /etc/apt/sources.list.d/${DEBIAN_VERSION}-backports.list && \
+    apt-get -y update && \
+    apt-get install --no-install-recommends -y \
+        bash && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN useradd rust --create-home -u 1000
+run chown -R rust:rust ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
+USER rust
+WORKDIR /home/rust
+
+ENTRYPOINT ["/bin/bash"]
