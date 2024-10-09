@@ -1,0 +1,4 @@
+polkadot:
+  git_repo: paritytech/polkadot-sdk
+  git_ref: polkadot-stable2409
+  image_name: kogeler/polkadot
