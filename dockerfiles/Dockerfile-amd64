@@ -22,9 +22,9 @@ RUN useradd node --create-home -u 1000
 USER node
 WORKDIR /home/node
 
-#RUN /usr/local/bin/polkadot --version
-#RUN /usr/local/bin/polkadot-prepare-worker --version
-#RUN /usr/local/bin/polkadot-execute-worker --version
+RUN /usr/local/bin/polkadot --version
+RUN /usr/local/bin/polkadot-prepare-worker --version
+RUN /usr/local/bin/polkadot-execute-worker --version
 
 EXPOSE 30333 9944 9615
 
