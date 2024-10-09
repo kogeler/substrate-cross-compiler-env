@@ -11,8 +11,6 @@ on:
       - .github/workflows/avail.yml
       - config.yml
 
-env:
-  RELEASE_REF: refs/heads/main
 jobs:
   build-binaries:
     runs-on: ubuntu-latest
@@ -28,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bookworm]
-        rust-versions: [1.78.0]
+        rust-versions: [1.81.0]
         clang-versions: [17]
         rustc-targets: ["x86-64-v2", "x86-64-v3"]
     steps:
@@ -36,9 +34,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Set environmental variables
         run: |
-          echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.avail.git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
-          CODE_GIT_REF=$(cat config.yml | yq -r '.avail.git_ref' | tr -d '\n')
+          echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.avail.code_git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
+          CODE_GIT_REF=$(cat config.yml | yq -r '.avail.code_git_ref' | tr -d '\n')
           echo "CODE_GIT_REF=${CODE_GIT_REF}" >> $GITHUB_ENV
+          echo "PUSH_GIT_REF=$(cat config.yml | yq -r '.avail.push_git_ref' | tr -d '\n')" >> "$GITHUB_ENV"
           ENV_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
           echo "BINARY_FILE_NAME=${CODE_GIT_REF}-${ENV_VERSION}" >> $GITHUB_ENV
           echo "EXECUTE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-execute-worker-${ENV_VERSION}" >> $GITHUB_ENV
@@ -56,7 +55,7 @@ jobs:
           cargo build --release --locked --target x86_64-unknown-linux-gnu
           ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
       - name: "Create release"
-        if: ${{ github.ref == env.RELEASE_REF }}
+        if: ${{ github.ref == env.PUSH_GIT_REF }}
         uses: "actions/github-script@v6"
         with:
           script: |
@@ -74,7 +73,7 @@ jobs:
               core.notice(error.message);
             }
       - name: Upload binaries
-        if: ${{ github.ref == env.RELEASE_REF }}
+        if: ${{ github.ref == env.PUSH_GIT_REF }}
         run: |
           BINARIES_DIR=${CARGO_TARGET_DIR}/x86_64-unknown-linux-gnu/release
           mv ${BINARIES_DIR}/avail-node ${BINARIES_DIR}/avail-${BINARY_FILE_NAME}
