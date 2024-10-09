@@ -54,26 +54,26 @@ jobs:
             echo "CONTINUE_IMAGE_BUILD=true" >> "$GITHUB_ENV"
           fi
       - name: Set up QEMU
-        #if: env.CONTINUE_IMAGE_BUILD == 'true'
+        if: env.CONTINUE_IMAGE_BUILD == 'true'
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
-        #if: env.CONTINUE_IMAGE_BUILD == 'true'
+        if: env.CONTINUE_IMAGE_BUILD == 'true'
         uses: docker/setup-buildx-action@v3
       - name: Log in to Container registry
-        #if: env.CONTINUE_IMAGE_BUILD == 'true'
+        if: env.CONTINUE_IMAGE_BUILD == 'true'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ github.token }}
       - name: Extract metadata (tags, labels) for Docker
-        #if: env.CONTINUE_IMAGE_BUILD == 'true'
+        if: env.CONTINUE_IMAGE_BUILD == 'true'
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}
       - name: Build and push Docker image
-        #if: env.CONTINUE_IMAGE_BUILD == 'true'
+        if: env.CONTINUE_IMAGE_BUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: dockerfiles
@@ -89,21 +89,21 @@ jobs:
       - name: Switch to default Docker builder
         if: env.CONTINUE_IMAGE_BUILD == 'true'
         run: docker buildx use default
-      # - name: Build node to test Docker image
-      #   if: env.CONTINUE_IMAGE_BUILD == 'true'
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     context: dockerfiles
-      #     file: dockerfiles/Dockerfile-env-test
-      #     push: false
-      #     pull: false
-      #     build-args: |
-      #       IMAGE_VERSION=image-to-test:latest
-      #       GIT_REPO=${{ env.CODE_GIT_REPO }}
-      #       GIT_REF=${{ env.CODE_GIT_REF }}
-      #     tags: test-build-image
+      - name: Build node to test Docker image
+        if: env.CONTINUE_IMAGE_BUILD == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: dockerfiles
+          file: dockerfiles/Dockerfile-env-test
+          push: false
+          pull: false
+          build-args: |
+            IMAGE_VERSION=image-to-test:latest
+            GIT_REPO=${{ env.CODE_GIT_REPO }}
+            GIT_REF=${{ env.CODE_GIT_REF }}
+          tags: test-build-image
       - name: Push Docker image
-        #if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' && github.ref == env.RELEASE_REF }}
+        if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' && github.ref == env.RELEASE_REF }}
         run: docker push ${{ env.ENV_FULL_IMAGE_NAME }}
   build-binaries:
     runs-on: ubuntu-latest
@@ -131,7 +131,6 @@ jobs:
           echo "CODE_GIT_REF=${CODE_GIT_REF}" >> $GITHUB_ENV
           IMAGE_NAME=$(cat config.yml | yq -r '.polkadot.image_name' | tr -d '\n')
           echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
-          echo "${IMAGE_NAME}" 
           BUILD_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
           echo "BINARY_FILE_NAME=${CODE_GIT_REF}-${BUILD_VERSION}" >> $GITHUB_ENV
           echo "EXECUTE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-execute-worker-${BUILD_VERSION}" >> $GITHUB_ENV
@@ -144,22 +143,22 @@ jobs:
           repository: ${{ env.CODE_GIT_REPO }} 
           path: polkadot-sdk
           ref: ${{ env.CODE_GIT_REF }}
-      # - name: Build binaries
-      #   working-directory: ./polkadot-sdk
-      #   env:
-      #     RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
-      #   run: |
-      #     export WASM_BUILD_WORKSPACE_HINT=$(pwd)
-      #     env
-      #     cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --target x86_64-unknown-linux-gnu
-      #     export BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
-      #     ls ${BINARIES_DIR}
-      #     mkdir ${GITHUB_WORKSPACE}/artifacts
-      #     cp ${BINARIES_DIR}/polkadot ${GITHUB_WORKSPACE}/artifacts
-      #     cp ${BINARIES_DIR}/polkadot-execute-worker ${GITHUB_WORKSPACE}/artifacts
-      #     cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
+      - name: Build binaries
+        working-directory: ./polkadot-sdk
+        env:
+          RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
+        run: |
+          export WASM_BUILD_WORKSPACE_HINT=$(pwd)
+          env
+          cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --target x86_64-unknown-linux-gnu
+          export BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
+          ls ${BINARIES_DIR}
+          mkdir ${GITHUB_WORKSPACE}/artifacts
+          cp ${BINARIES_DIR}/polkadot ${GITHUB_WORKSPACE}/artifacts
+          cp ${BINARIES_DIR}/polkadot-execute-worker ${GITHUB_WORKSPACE}/artifacts
+          cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
       - name: "Create release"
-        #if: ${{ github.ref == env.RELEASE_REF }}
+        if: ${{ github.ref == env.RELEASE_REF }}
         uses: "actions/github-script@v6"
         with:
           script: |
@@ -204,7 +203,7 @@ jobs:
         with:
           file: dockerfiles/Dockerfile-amd64
           context: artifacts
-          push: true
+          push: ${{ github.ref == env.RELEASE_REF }}
           load: true
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
