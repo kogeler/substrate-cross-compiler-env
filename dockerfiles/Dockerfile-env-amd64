@@ -33,7 +33,7 @@ RUN set -eux && \
     apt-get -y update && \
     apt-get install --no-install-recommends -y \
         # tools
-        git bash sudo nano gh \
+        git bash sudo nano gh yq \
         # compilers
         clang-$CLANG_VERSION lldb-$CLANG_VERSION lld-$CLANG_VERSION libclang-$CLANG_VERSION-dev make \
         # dependencies
