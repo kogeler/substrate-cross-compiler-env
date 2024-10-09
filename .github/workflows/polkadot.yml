@@ -7,12 +7,14 @@ on:
       - .github/workflows/polkadot.yml
       - dockerfiles/Dockerfile-env-test
       - dockerfiles/Dockerfile-env-amd64
+      - dockerfiles/Dockerfile-amd64
       - config.yml
   pull_request:
     paths:
       - .github/workflows/polkadot.yml
       - dockerfiles/Dockerfile-env-test
       - dockerfiles/Dockerfile-env-amd64
+      - dockerfiles/Dockerfile-amd64
       - config.yml
 
 env:
