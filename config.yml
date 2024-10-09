@@ -1,0 +1,7 @@
+polkadot:
+  git_repo: paritytech/polkadot-sdk
+  git_ref: polkadot-stable2409
+  image_name: kogeler/polkadot
+avail:
+  git_repo: availproject/avail
+  git_ref: v2.2.5.0
