@@ -111,6 +111,7 @@ jobs:
     needs: [build-docker-images]
     permissions:
       contents: write
+      packages: write
     container:
       image: ${{ needs.build-docker-images.outputs.image-name }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
       options: --user 0:0 --privileged -v /var/run/docker.sock:/var/run/docker.sock
