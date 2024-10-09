@@ -17,7 +17,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  ENV_IMAGE_NAME: kogeler/substrate-cross-compiler-env
   RELEASE_REF: refs/heads/main
 jobs:
   build-docker-images:
@@ -25,6 +24,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      ENV_IMAGE_NAME: kogeler/substrate-cross-compiler-env
     outputs:
       image-name: ${{ steps.env-vars.outputs.image-name }}
     strategy:
@@ -111,7 +112,7 @@ jobs:
       contents: write
       packages: write
     container:
-      image: ${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
+      image: ${{ needs.build-docker-images.outputs.image-name }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}
       options: --user 0:0 --privileged -v /var/run/docker.sock:/var/run/docker.sock
     strategy:
       fail-fast: false
