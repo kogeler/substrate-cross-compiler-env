@@ -140,49 +140,49 @@ jobs:
           repository: ${{ env.CODE_GIT_REPO }} 
           path: polkadot-sdk
           ref: ${{ env.CODE_GIT_REF }}
-      - name: Build binaries
-        working-directory: ./polkadot-sdk
-        env:
-          RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
-        run: |
-          export WASM_BUILD_WORKSPACE_HINT=$(pwd)
-          env
-          cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --target x86_64-unknown-linux-gnu
-          export BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
-          ls ${BINARIES_DIR}
-          mkdir ${GITHUB_WORKSPACE}/artifacts
-          cp ${BINARIES_DIR}/polkadot ${GITHUB_WORKSPACE}/artifacts
-          cp ${BINARIES_DIR}/polkadot-execute-worker ${GITHUB_WORKSPACE}/artifacts
-          cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
-      - name: "Create release"
-        #if: ${{ github.ref == env.RELEASE_REF }}
-        uses: "actions/github-script@v6"
-        with:
-          script: |
-            try {
-              const response = await github.rest.repos.createRelease({
-                draft: false,
-                generate_release_notes: true,
-                name: process.env.CODE_GIT_REF,
-                owner: context.repo.owner,
-                prerelease: false,
-                repo: context.repo.repo,
-                tag_name: process.env.CODE_GIT_REF,
-              });
-            } catch (error) {
-              core.notice(error.message);
-            }
-      - name: Upload binaries to release
-        #if: ${{ github.ref == env.RELEASE_REF }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cp artifacts/polkadot artifacts/${BINARY_FILE_NAME}
-          cp artifacts/polkadot-execute-worker artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME}
-          cp artifacts/polkadot-prepare-worker artifacts/${PREPARE_WORKER_BINARY_FILE_NAME}
-          gh release upload ${{ env.CODE_GIT_REF }} artifacts/${BINARY_FILE_NAME} --clobber
-          gh release upload ${{ env.CODE_GIT_REF }} artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME} --clobber
-          gh release upload ${{ env.CODE_GIT_REF }} artifacts/${PREPARE_WORKER_BINARY_FILE_NAME} --clobber
+      # - name: Build binaries
+      #   working-directory: ./polkadot-sdk
+      #   env:
+      #     RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
+      #   run: |
+      #     export WASM_BUILD_WORKSPACE_HINT=$(pwd)
+      #     env
+      #     cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --target x86_64-unknown-linux-gnu
+      #     export BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
+      #     ls ${BINARIES_DIR}
+      #     mkdir ${GITHUB_WORKSPACE}/artifacts
+      #     cp ${BINARIES_DIR}/polkadot ${GITHUB_WORKSPACE}/artifacts
+      #     cp ${BINARIES_DIR}/polkadot-execute-worker ${GITHUB_WORKSPACE}/artifacts
+      #     cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
+      # - name: "Create release"
+      #   #if: ${{ github.ref == env.RELEASE_REF }}
+      #   uses: "actions/github-script@v6"
+      #   with:
+      #     script: |
+      #       try {
+      #         const response = await github.rest.repos.createRelease({
+      #           draft: false,
+      #           generate_release_notes: true,
+      #           name: process.env.CODE_GIT_REF,
+      #           owner: context.repo.owner,
+      #           prerelease: false,
+      #           repo: context.repo.repo,
+      #           tag_name: process.env.CODE_GIT_REF,
+      #         });
+      #       } catch (error) {
+      #         core.notice(error.message);
+      #       }
+      # - name: Upload binaries to release
+      #   #if: ${{ github.ref == env.RELEASE_REF }}
+      #   env:
+      #     GH_TOKEN: ${{ github.token }}
+      #   run: |
+      #     cp artifacts/polkadot artifacts/${BINARY_FILE_NAME}
+      #     cp artifacts/polkadot-execute-worker artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME}
+      #     cp artifacts/polkadot-prepare-worker artifacts/${PREPARE_WORKER_BINARY_FILE_NAME}
+      #     gh release upload ${{ env.CODE_GIT_REF }} artifacts/${BINARY_FILE_NAME} --clobber
+      #     gh release upload ${{ env.CODE_GIT_REF }} artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME} --clobber
+      #     gh release upload ${{ env.CODE_GIT_REF }} artifacts/${PREPARE_WORKER_BINARY_FILE_NAME} --clobber
       - name: Log in to Container registry
         uses: docker/login-action@v3
         with:
@@ -194,10 +194,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: temp
+        run: |
+          mkdir artifacts
+          echo a > artifacts/polkadot
+          echo b > artifacts/polkadot-execute-worker 
+          echo c > artifacts/polkadot-prepare-worker 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
           file: dockerfiles/Dockerfile-amd64
+          context: artifacts
           push: true
           load: true
           labels: ${{ steps.meta.outputs.labels }}
