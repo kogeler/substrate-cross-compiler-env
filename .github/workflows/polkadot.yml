@@ -138,7 +138,7 @@ jobs:
           echo "BINARY_FILE_NAME=${CODE_GIT_REF}-${BUILD_VERSION}" >> $GITHUB_ENV
           echo "EXECUTE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-execute-worker-${BUILD_VERSION}" >> $GITHUB_ENV
           echo "PREPARE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-prepare-worker-${BUILD_VERSION}" >> $GITHUB_ENV
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME}:${BUILD_VERSION}" >> "$GITHUB_ENV"
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME}:${CODE_GIT_REF}-${BUILD_VERSION}" >> "$GITHUB_ENV"
           git config --global --add safe.directory $(pwd)
       - name: Checkout repository
         uses: actions/checkout@v4
