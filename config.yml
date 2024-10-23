@@ -5,5 +5,5 @@ polkadot:
   image_name: kogeler/polkadot
 avail:
   code_git_repo: availproject/avail
-  code_git_ref: v2.2.5.0
+  code_git_ref: v2.2.5.1
   push_git_ref: refs/heads/main
