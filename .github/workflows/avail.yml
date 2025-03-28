@@ -28,7 +28,7 @@ jobs:
         debian-versions: [bookworm]
         rust-versions: [1.81.0]
         clang-versions: [17]
-        rustc-targets: ["x86-64-v2", "x86-64-v3"]
+        rustc-targets: ["x86-64-v3"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -50,8 +50,10 @@ jobs:
           path: git-content
           ref: ${{ env.CODE_GIT_REF }}
       - name: Build binaries
+        working-directory: ./git-content
         run: |
-          cd git-content
+          export WASM_BUILD_WORKSPACE_HINT=$(pwd)
+          env
           cargo build --release --locked --target x86_64-unknown-linux-gnu
           ls /opt/cargo_target/x86_64-unknown-linux-gnu/release
       - name: "Create release"
