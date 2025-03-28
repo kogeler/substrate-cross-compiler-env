@@ -141,7 +141,7 @@ jobs:
           echo "PREPARE_WORKER_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-prepare-worker-${BUILD_VERSION}" >> $GITHUB_ENV
           echo "PARACHAIN_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-parachain-${BUILD_VERSION}" >> $GITHUB_ENV
           echo "SUBSTRATE_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-substrate-${BUILD_VERSION}" >> $GITHUB_ENV
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ github.repository.split('/')[0] }}/${{ matrix.components }}:${VERSION}-${BUILD_VERSION}" >> "$GITHUB_ENV"
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.components }}:${VERSION}-${BUILD_VERSION}" >> "$GITHUB_ENV"
           git config --global --add safe.directory $(pwd)
       - name: Checkout repository
         uses: actions/checkout@v4
