@@ -123,6 +123,7 @@ jobs:
         rust-versions: [1.81.0]
         clang-versions: [17, 18]
         rustc-targets: ["x86-64-v3", "x86-64-v4"]
+        components: ["polkadot", "polkadot-parachain", "substrate-node"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -130,17 +131,17 @@ jobs:
         run: |
           echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.polkadot.code_git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
           CODE_GIT_REF=$(cat config.yml | yq -r '.polkadot.code_git_ref' | tr -d '\n')
-          echo "CODE_GIT_REF=${CODE_GIT_REF}" >> $GITHUB_ENV
-          IMAGE_NAME=$(cat config.yml | yq -r '.polkadot.image_name' | tr -d '\n')
-          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "CODE_GIT_REF=${CODE_GIT_REF}" >> "$GITHUB_ENV"
+          VERSION=$( echo "${CODE_GIT_REF}" | sed -E 's/^polkadot-//')
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "PUSH_GIT_REF=$(cat config.yml | yq -r '.polkadot.push_git_ref' | tr -d '\n')" >> "$GITHUB_ENV"
           BUILD_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
-          echo "BINARY_FILE_NAME=${CODE_GIT_REF}-${BUILD_VERSION}" >> $GITHUB_ENV
-          echo "EXECUTE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-execute-worker-${BUILD_VERSION}" >> $GITHUB_ENV
-          echo "PREPARE_WORKER_BINARY_FILE_NAME=${CODE_GIT_REF}-prepare-worker-${BUILD_VERSION}" >> $GITHUB_ENV
-          echo "PARACHAIN_BINARY_FILE_NAME=${CODE_GIT_REF}-parachain-${BUILD_VERSION}" >> $GITHUB_ENV
-          echo "SUBSTRATE_BINARY_FILE_NAME=${CODE_GIT_REF}-substrate-${BUILD_VERSION}" >> $GITHUB_ENV
-          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${IMAGE_NAME}:${CODE_GIT_REF}-${BUILD_VERSION}" >> "$GITHUB_ENV"
+          echo "BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "EXECUTE_WORKER_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-execute-worker-${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "PREPARE_WORKER_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-prepare-worker-${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "PARACHAIN_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-parachain-${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "SUBSTRATE_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-substrate-${BUILD_VERSION}" >> $GITHUB_ENV
+          echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ github.repository.split('/')[0] }}/${{ matrix.components }}:${VERSION}-${BUILD_VERSION}" >> "$GITHUB_ENV"
           git config --global --add safe.directory $(pwd)
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -148,22 +149,34 @@ jobs:
           repository: ${{ env.CODE_GIT_REPO }} 
           path: git-content
           ref: ${{ env.CODE_GIT_REF }}
+          fetch-depth: 1
       - name: Build binaries
         working-directory: ./git-content
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
         run: |
           export WASM_BUILD_WORKSPACE_HINT=$(pwd)
-          env
-          cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --bin substrate-node --bin polkadot-parachain --target x86_64-unknown-linux-gnu
           export BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
-          ls ${BINARIES_DIR}
+          env
           mkdir ${GITHUB_WORKSPACE}/artifacts
-          cp ${BINARIES_DIR}/polkadot ${GITHUB_WORKSPACE}/artifacts
-          cp ${BINARIES_DIR}/polkadot-execute-worker ${GITHUB_WORKSPACE}/artifacts
-          cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
-          cp ${BINARIES_DIR}/polkadot-parachain ${GITHUB_WORKSPACE}/artifacts
-          cp ${BINARIES_DIR}/substrate-node ${GITHUB_WORKSPACE}/artifacts
+          echo "Build ${{ matrix.components }}"
+          if [ "${{ matrix.components }}" = "polkadot" ]; then
+            cargo build --profile production --locked --bin polkadot --bin polkadot-execute-worker --bin polkadot-prepare-worker --target x86_64-unknown-linux-gnu
+            ls ${BINARIES_DIR}
+            cp ${BINARIES_DIR}/polkadot ${GITHUB_WORKSPACE}/artifacts
+            cp ${BINARIES_DIR}/polkadot-execute-worker ${GITHUB_WORKSPACE}/artifacts
+            cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
+          fi
+          if [ "${{ matrix.components }}" = "polkadot-parachain" ]; then
+            cargo build --profile production --locked --bin polkadot-parachain --target x86_64-unknown-linux-gnu
+            ls ${BINARIES_DIR}
+            cp ${BINARIES_DIR}/polkadot-parachain ${GITHUB_WORKSPACE}/artifacts
+          fi
+          if [ "${{ matrix.components }}" = "substrate-node" ]; then
+            cargo build --profile production --locked --bin substrate-node --target x86_64-unknown-linux-gnu
+            ls ${BINARIES_DIR}
+            cp ${BINARIES_DIR}/substrate-node ${GITHUB_WORKSPACE}/artifacts
+          fi
       - name: Create GitHub release
         if: ${{ github.ref == env.PUSH_GIT_REF }}
         uses: "actions/github-script@v6"
@@ -188,16 +201,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir gh_artifacts
-          cp artifacts/polkadot gh_artifacts/${BINARY_FILE_NAME}
-          cp artifacts/polkadot-execute-worker gh_artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME}
-          cp artifacts/polkadot-prepare-worker gh_artifacts/${PREPARE_WORKER_BINARY_FILE_NAME}
-          cp artifacts/polkadot-parachain gh_artifacts/${PARACHAIN_BINARY_FILE_NAME}
-          cp artifacts/substrate-node gh_artifacts/${SUBSTRATE_BINARY_FILE_NAME}
-          gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${BINARY_FILE_NAME} --clobber
-          gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME} --clobber
-          gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${PREPARE_WORKER_BINARY_FILE_NAME} --clobber
-          gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${PARACHAIN_BINARY_FILE_NAME} --clobber
-          gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${SUBSTRATE_BINARY_FILE_NAME} --clobber
+          echo "Upload ${{ matrix.components }}"
+          if [ "${{ matrix.components }}" = "polkadot" ]; then
+            cp artifacts/polkadot gh_artifacts/${BINARY_FILE_NAME}
+            cp artifacts/polkadot-execute-worker gh_artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME}
+            cp artifacts/polkadot-prepare-worker gh_artifacts/${PREPARE_WORKER_BINARY_FILE_NAME}
+            gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${BINARY_FILE_NAME} --clobber
+            gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${EXECUTE_WORKER_BINARY_FILE_NAME} --clobber
+            gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${PREPARE_WORKER_BINARY_FILE_NAME} --clobber
+          fi
+          if [ "${{ matrix.components }}" = "polkadot-parachain" ]; then
+            cp artifacts/polkadot-parachain gh_artifacts/${PARACHAIN_BINARY_FILE_NAME}
+            gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${PARACHAIN_BINARY_FILE_NAME} --clobber
+          fi
+          if [ "${{ matrix.components }}" = "substrate-node" ]; then
+            cp artifacts/substrate-node gh_artifacts/${SUBSTRATE_BINARY_FILE_NAME}
+            gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${SUBSTRATE_BINARY_FILE_NAME} --clobber
+          fi
       - name: Log in to container registry
         uses: docker/login-action@v3
         with:
@@ -219,4 +239,5 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             DEBIAN_VERSION=${{ matrix.debian-versions }}
+            BINARY_NAME=${{ matrix.components }}
           tags: ${{ env.FULL_IMAGE_NAME }}

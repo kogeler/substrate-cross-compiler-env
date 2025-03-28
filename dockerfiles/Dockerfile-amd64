@@ -3,6 +3,7 @@ ARG DEBIAN_VERSION=bookworm
 FROM debian:${DEBIAN_VERSION}-slim
 
 ARG DEBIAN_VERSION=bookworm
+ARG BINARY_NAME=polkadot
 
 # Set environment variables
 ENV SHELL="/bin/bash"
@@ -24,5 +25,5 @@ WORKDIR /home/node
 
 EXPOSE 30333 9944 9615
 
-ENTRYPOINT ["/usr/local/bin/polkadot"]
+ENTRYPOINT ["/usr/local/bin/${BINARY_NAME}"]
 CMD ["--help"]
