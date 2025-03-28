@@ -123,7 +123,8 @@ jobs:
         rust-versions: [1.81.0]
         clang-versions: [17, 18]
         rustc-targets: ["x86-64-v3", "x86-64-v4"]
-        components: ["polkadot", "polkadot-parachain", "substrate-node"]
+        # "polkadot-parachain" is too big for free runers
+        components: ["polkadot", "substrate-node"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

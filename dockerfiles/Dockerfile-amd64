@@ -9,6 +9,7 @@ ARG BINARY_NAME=polkadot
 ENV SHELL="/bin/bash"
 ENV DEBIAN_FRONTEND="noninteractive"
 ENV RUST_BACKTRACE=1
+ENV BINARY_NAME=$BINARY_NAME
 
 # Install dependencies
 RUN set -eux && \
@@ -25,5 +26,5 @@ WORKDIR /home/node
 
 EXPOSE 30333 9944 9615
 
-ENTRYPOINT ["/usr/local/bin/${BINARY_NAME}"]
+ENTRYPOINT ["/bin/bash", "-c", "/usr/local/bin/${BINARY_NAME} ${@}", "--"]
 CMD ["--help"]
