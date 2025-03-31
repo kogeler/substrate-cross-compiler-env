@@ -1,6 +1,6 @@
 polkadot:
   code_git_repo: paritytech/polkadot-sdk
-  code_git_ref: polkadot-stable2503-rc2
+  code_git_ref: polkadot-stable2412-4
   push_git_ref: refs/heads/main
 avail:
   code_git_repo: availproject/avail
