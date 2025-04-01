@@ -17,6 +17,7 @@ ENV PATH="$PATH:$CARGO_HOME/bin"
 
 ENV CC="clang-$CLANG_VERSION"
 ENV CXX="clang-$CLANG_VERSION"
+ENV LD="lld-$CLANG_VERSION"
 
 ENV RUST_BACKTRACE=1
 
@@ -41,7 +42,10 @@ RUN set -eux && \
         # docker
         docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin && \
     update-alternatives --install /usr/bin/cc cc /usr/bin/clang-$CLANG_VERSION 100 && \
+    update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang-$CLANG_VERSION 100 && \
     update-alternatives --install /usr/bin/ld ld /usr/bin/ld.lld-$CLANG_VERSION 100 && \
+    update-alternatives --install /usr/bin/clang clang /usr/bin/clang-$CLANG_VERSION  100 && \
+    update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-$CLANG_VERSION 100 && \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd rust --create-home -u 1000 --groups sudo

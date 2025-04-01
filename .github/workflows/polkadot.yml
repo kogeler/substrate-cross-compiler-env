@@ -153,6 +153,8 @@ jobs:
         working-directory: ./git-content
         env:
           RUSTFLAGS: "-C target-cpu=${{ matrix.rustc-targets }}"
+          CFLAGS: "-pipe -fstack-protector-strong -D_FORTIFY_SOURCE=2 -march=${{ matrix.rustc-targets }}"
+          CXXFLAGS: "-pipe -fstack-protector-strong -D_FORTIFY_SOURCE=2 -march=${{ matrix.rustc-targets }}"
         run: |
           export WASM_BUILD_WORKSPACE_HINT=$(pwd)
           export BINARIES_DIR=/opt/cargo_target/x86_64-unknown-linux-gnu/production
