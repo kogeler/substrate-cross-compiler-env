@@ -34,7 +34,7 @@ jobs:
       matrix:
         debian-versions: [bullseye, bookworm]
         rust-versions: [1.81.0]
-        clang-versions: [17, 18]
+        clang-versions: [17, 19]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -121,7 +121,7 @@ jobs:
       matrix:
         debian-versions: [bullseye, bookworm]
         rust-versions: [1.81.0]
-        clang-versions: [17, 18]
+        clang-versions: [17, 19]
         rustc-targets: ["x86-64-v3", "x86-64-v4"]
         # "polkadot-parachain" with runtimes is too big for free runers
         components: ["polkadot", "substrate-node", "polkadot-parachain"]
