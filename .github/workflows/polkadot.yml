@@ -27,7 +27,7 @@ jobs:
       contents: read
       packages: write
     env:
-      ENV_IMAGE_NAME: kogeler/substrate-cross-compiler-env
+      ENV_IMAGE_NAME: "${{ github.repository_owner }}/substrate-cross-compiler-env"
     outputs:
       image-name: ${{ steps.env-vars.outputs.image-name }}
     strategy:
@@ -46,7 +46,6 @@ jobs:
           echo "image-name=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
           echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.polkadot.code_git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
           echo "CODE_GIT_REF=$(cat config.yml | yq -r '.polkadot.code_git_ref' | tr -d '\n')" >> "$GITHUB_ENV"
-          echo "PUSH_GIT_REF=$(cat config.yml | yq -r '.polkadot.push_git_ref' | tr -d '\n')" >> "$GITHUB_ENV"
       - name: Check Docker image
         run: |
           if docker manifest inspect "${ENV_FULL_IMAGE_NAME}" > /dev/null 2>&1; then
@@ -106,7 +105,7 @@ jobs:
             GIT_REF=${{ env.CODE_GIT_REF }}
           tags: test-build-image
       - name: Push Docker image
-        if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' && github.ref == env.PUSH_GIT_REF }}
+        if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' }}
         run: docker push ${{ env.ENV_FULL_IMAGE_NAME }}
   build-binaries:
     runs-on: ubuntu-latest
@@ -136,7 +135,6 @@ jobs:
           echo "CODE_GIT_REF=${CODE_GIT_REF}" >> "$GITHUB_ENV"
           VERSION=$( echo "${CODE_GIT_REF}" | sed -E 's/^polkadot-//')
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "PUSH_GIT_REF=$(cat config.yml | yq -r '.polkadot.push_git_ref' | tr -d '\n')" >> "$GITHUB_ENV"
           BUILD_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
           echo "BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-${BUILD_VERSION}" >> $GITHUB_ENV
           echo "EXECUTE_WORKER_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-execute-worker-${BUILD_VERSION}" >> $GITHUB_ENV
@@ -181,7 +179,6 @@ jobs:
             cp ${BINARIES_DIR}/substrate-node ${GITHUB_WORKSPACE}/artifacts
           fi
       - name: Create GitHub release
-        if: ${{ github.ref == env.PUSH_GIT_REF }}
         uses: "actions/github-script@v6"
         with:
           script: |
@@ -199,7 +196,6 @@ jobs:
               core.notice(error.message);
             }
       - name: Upload binaries to GitHub release
-        if: ${{ github.ref == env.PUSH_GIT_REF }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -237,7 +233,7 @@ jobs:
         with:
           file: dockerfiles/Dockerfile-amd64
           context: artifacts
-          push: ${{ github.ref == env.PUSH_GIT_REF }}
+          push: true
           load: true
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
