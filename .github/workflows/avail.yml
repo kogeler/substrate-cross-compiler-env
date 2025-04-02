@@ -1,15 +1,16 @@
 name: Build Avail binaries
 
 on:
-  push:
-    branches:
-    paths:
-      - .github/workflows/avail.yml
-      - config.yml
-  pull_request:
-    paths:
-      - .github/workflows/avail.yml
-      - config.yml
+  workflow_dispatch:
+  # push:
+  #   branches: "*"
+  #   paths:
+  #     - .github/workflows/avail.yml
+  #     - config.yml
+  # pull_request:
+  #   paths:
+  #     - .github/workflows/avail.yml
+  #     - config.yml
 
 jobs:
   build-binaries:

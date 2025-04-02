@@ -1,21 +1,22 @@
 name: Build Polkadot binaries and images
 
 on:
-  push:
-    branches:
-    paths:
-      - .github/workflows/polkadot.yml
-      - dockerfiles/Dockerfile-env-test
-      - dockerfiles/Dockerfile-env-amd64
-      - dockerfiles/Dockerfile-amd64
-      - config.yml
-  pull_request:
-    paths:
-      - .github/workflows/polkadot.yml
-      - dockerfiles/Dockerfile-env-test
-      - dockerfiles/Dockerfile-env-amd64
-      - dockerfiles/Dockerfile-amd64
-      - config.yml
+  workflow_dispatch:
+  # push:
+  #   branches: "*"
+  #   paths:
+  #     - .github/workflows/polkadot.yml
+  #     - dockerfiles/Dockerfile-env-test
+  #     - dockerfiles/Dockerfile-env-amd64
+  #     - dockerfiles/Dockerfile-amd64
+  #     - config.yml
+  # pull_request:
+  #   paths:
+  #     - .github/workflows/polkadot.yml
+  #     - dockerfiles/Dockerfile-env-test
+  #     - dockerfiles/Dockerfile-env-amd64
+  #     - dockerfiles/Dockerfile-amd64
+  #     - config.yml
 
 env:
   REGISTRY: ghcr.io
@@ -122,7 +123,7 @@ jobs:
         debian-versions: [bullseye, bookworm]
         rust-versions: [1.81.0]
         clang-versions: [17, 19]
-        rustc-targets: ["x86-64-v3", "x86-64-v4"]
+        rustc-targets: ["x86-64-v3"]
         # "polkadot-parachain" with runtimes is too big for free runers
         components: ["polkadot", "substrate-node", "polkadot-parachain"]
     steps:
