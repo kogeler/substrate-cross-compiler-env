@@ -34,7 +34,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.81.0]
+        rust-versions: [1.84.1]
         clang-versions: [17, 19]
     steps:
       - name: Checkout repository
@@ -120,7 +120,7 @@ jobs:
       fail-fast: false
       matrix:
         debian-versions: [bullseye, bookworm]
-        rust-versions: [1.81.0]
+        rust-versions: [1.84.1]
         clang-versions: [17, 19]
         rustc-targets: ["x86-64-v3"]
         # "polkadot-parachain" with runtimes is too big for free runers
