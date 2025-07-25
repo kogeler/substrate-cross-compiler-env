@@ -123,8 +123,8 @@ jobs:
         rust-versions: [1.84.1]
         clang-versions: [17, 19]
         rustc-targets: ["x86-64-v3"]
-        # "polkadot-parachain" with runtimes is too big for free runers
-        components: ["polkadot", "substrate-node", "polkadot-parachain"]
+        #components: ["polkadot", "substrate-node", "polkadot-parachain", "polkadot-omni-node"]
+        components: ["polkadot-omni-node"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -168,10 +168,16 @@ jobs:
             cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
           fi
           if [ "${{ matrix.components }}" = "polkadot-parachain" ]; then
+            # "polkadot-parachain" with runtimes is too big for free runers
             export SKIP_WASM_BUILD=1
             cargo build --profile production --locked --bin polkadot-parachain --target x86_64-unknown-linux-gnu
             ls ${BINARIES_DIR}
             cp ${BINARIES_DIR}/polkadot-parachain ${GITHUB_WORKSPACE}/artifacts
+          fi
+          if [ "${{ matrix.components }}" = "polkadot-omni-node" ]; then
+            cargo build --profile production --locked --bin polkadot-omni-node --target x86_64-unknown-linux-gnu
+            ls ${BINARIES_DIR}
+            cp ${BINARIES_DIR}/polkadot-omni-node ${GITHUB_WORKSPACE}/artifacts
           fi
           if [ "${{ matrix.components }}" = "substrate-node" ]; then
             cargo build --profile production --locked --bin substrate-node --target x86_64-unknown-linux-gnu
@@ -213,6 +219,10 @@ jobs:
             cp artifacts/polkadot-parachain gh_artifacts/${BINARY_FILE_NAME}
             gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${BINARY_FILE_NAME} --clobber
           fi
+          if [ "${{ matrix.components }}" = "polkadot-omni-node" ]; then
+            cp artifacts/polkadot-omni-node gh_artifacts/${BINARY_FILE_NAME}
+            gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${BINARY_FILE_NAME} --clobber
+          fi
           if [ "${{ matrix.components }}" = "substrate-node" ]; then
             cp artifacts/substrate-node gh_artifacts/${BINARY_FILE_NAME}
             gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${BINARY_FILE_NAME} --clobber
@@ -228,15 +238,15 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          file: dockerfiles/Dockerfile-amd64
-          context: artifacts
-          push: true
-          load: true
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            DEBIAN_VERSION=${{ matrix.debian-versions }}
-            BINARY_NAME=${{ matrix.components }}
-          tags: ${{ env.FULL_IMAGE_NAME }}
+      # - name: Build and push Docker image
+      #   uses: docker/build-push-action@v6
+      #   with:
+      #     file: dockerfiles/Dockerfile-amd64
+      #     context: artifacts
+      #     push: true
+      #     load: true
+      #     labels: ${{ steps.meta.outputs.labels }}
+      #     build-args: |
+      #       DEBIAN_VERSION=${{ matrix.debian-versions }}
+      #       BINARY_NAME=${{ matrix.components }}
+      #     tags: ${{ env.FULL_IMAGE_NAME }}
