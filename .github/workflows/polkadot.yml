@@ -33,9 +33,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        debian-versions: [bullseye, bookworm]
+        debian-versions: [bookworm]
         rust-versions: [1.84.1]
-        clang-versions: [17, 19]
+        clang-versions: [19]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -119,9 +119,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        debian-versions: [bullseye, bookworm]
+        debian-versions: [bookworm]
         rust-versions: [1.84.1]
-        clang-versions: [17, 19]
+        clang-versions: [19]
         rustc-targets: ["x86-64-v3"]
         #components: ["polkadot", "substrate-node", "polkadot-parachain", "polkadot-omni-node"]
         components: ["polkadot-omni-node"]
