@@ -123,8 +123,7 @@ jobs:
         rust-versions: [1.84.1]
         clang-versions: [19]
         rustc-targets: ["x86-64-v3"]
-        #components: ["polkadot", "substrate-node", "polkadot-parachain", "polkadot-omni-node"]
-        components: ["polkadot-omni-node"]
+        components: ["polkadot", "substrate-node", "polkadot-parachain", "polkadot-omni-node"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -238,15 +237,15 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-      # - name: Build and push Docker image
-      #   uses: docker/build-push-action@v6
-      #   with:
-      #     file: dockerfiles/Dockerfile-amd64
-      #     context: artifacts
-      #     push: true
-      #     load: true
-      #     labels: ${{ steps.meta.outputs.labels }}
-      #     build-args: |
-      #       DEBIAN_VERSION=${{ matrix.debian-versions }}
-      #       BINARY_NAME=${{ matrix.components }}
-      #     tags: ${{ env.FULL_IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          file: dockerfiles/Dockerfile-amd64
+          context: artifacts
+          push: true
+          load: true
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            DEBIAN_VERSION=${{ matrix.debian-versions }}
+            BINARY_NAME=${{ matrix.components }}
+          tags: ${{ env.FULL_IMAGE_NAME }}
