@@ -33,9 +33,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        debian-versions: [bullseye, bookworm]
+        debian-versions: [bookworm]
         rust-versions: [1.84.1]
-        clang-versions: [17, 19]
+        clang-versions: [19]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -119,12 +119,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        debian-versions: [bullseye, bookworm]
+        debian-versions: [bookworm]
         rust-versions: [1.84.1]
-        clang-versions: [17, 19]
+        clang-versions: [19]
         rustc-targets: ["x86-64-v3"]
-        # "polkadot-parachain" with runtimes is too big for free runers
-        components: ["polkadot", "substrate-node", "polkadot-parachain"]
+        components: ["polkadot", "substrate-node", "polkadot-parachain", "polkadot-omni-node"]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -168,10 +167,16 @@ jobs:
             cp ${BINARIES_DIR}/polkadot-prepare-worker ${GITHUB_WORKSPACE}/artifacts
           fi
           if [ "${{ matrix.components }}" = "polkadot-parachain" ]; then
+            # "polkadot-parachain" with runtimes is too big for free runers
             export SKIP_WASM_BUILD=1
             cargo build --profile production --locked --bin polkadot-parachain --target x86_64-unknown-linux-gnu
             ls ${BINARIES_DIR}
             cp ${BINARIES_DIR}/polkadot-parachain ${GITHUB_WORKSPACE}/artifacts
+          fi
+          if [ "${{ matrix.components }}" = "polkadot-omni-node" ]; then
+            cargo build --profile production --locked --bin polkadot-omni-node --target x86_64-unknown-linux-gnu
+            ls ${BINARIES_DIR}
+            cp ${BINARIES_DIR}/polkadot-omni-node ${GITHUB_WORKSPACE}/artifacts
           fi
           if [ "${{ matrix.components }}" = "substrate-node" ]; then
             cargo build --profile production --locked --bin substrate-node --target x86_64-unknown-linux-gnu
@@ -211,6 +216,10 @@ jobs:
           fi
           if [ "${{ matrix.components }}" = "polkadot-parachain" ]; then
             cp artifacts/polkadot-parachain gh_artifacts/${BINARY_FILE_NAME}
+            gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${BINARY_FILE_NAME} --clobber
+          fi
+          if [ "${{ matrix.components }}" = "polkadot-omni-node" ]; then
+            cp artifacts/polkadot-omni-node gh_artifacts/${BINARY_FILE_NAME}
             gh release upload ${{ env.CODE_GIT_REF }} gh_artifacts/${BINARY_FILE_NAME} --clobber
           fi
           if [ "${{ matrix.components }}" = "substrate-node" ]; then
