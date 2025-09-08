@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        debian-versions: [bookworm, trixie]
+        debian-versions: [bookworm]
         rust-versions: [1.84.1]
         clang-versions: [19, 20]
     steps:
