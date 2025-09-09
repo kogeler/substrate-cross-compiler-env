@@ -121,7 +121,7 @@ jobs:
       matrix:
         debian-versions: [bookworm]
         rust-versions: [1.84.1]
-        clang-versions: [19]
+        clang-versions: [19, 20]
         rustc-targets: ["x86-64-v3"]
         components: ["polkadot", "substrate-node", "polkadot-parachain", "polkadot-omni-node"]
     steps:
