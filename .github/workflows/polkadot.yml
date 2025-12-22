@@ -35,7 +35,7 @@ jobs:
       matrix:
         debian-versions: [bookworm]
         rust-versions: [1.88.0]
-        clang-versions: [19, 20]
+        clang-versions: [20, 21]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -121,7 +121,7 @@ jobs:
       matrix:
         debian-versions: [bookworm]
         rust-versions: [1.88.0]
-        clang-versions: [19, 20]
+        clang-versions: [20, 21]
         rustc-targets: ["x86-64-v3"]
         components: ["polkadot", "substrate-node", "polkadot-parachain", "polkadot-omni-node"]
     steps:
