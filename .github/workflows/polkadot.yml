@@ -140,6 +140,15 @@ jobs:
           echo "PREPARE_WORKER_BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-prepare-worker-${BUILD_VERSION}" >> $GITHUB_ENV
           echo "FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.components }}:${VERSION}-${BUILD_VERSION}" >> "$GITHUB_ENV"
           git config --global --add safe.directory $(pwd)
+      - name: Compute cargo jobs (cores - 1)
+        shell: bash
+        run: |
+          CORES="$(nproc)"
+          JOBS="$((CORES - 1))"
+          if [ "$JOBS" -lt 1 ]; then JOBS=1; fi
+      
+          echo "CARGO_BUILD_JOBS=$JOBS" >> "$GITHUB_ENV"
+          echo "CORES=$CORES, CARGO_BUILD_JOBS=$JOBS"
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
