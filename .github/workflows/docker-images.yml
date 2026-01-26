@@ -1,0 +1,94 @@
+name: Build Docker images
+
+on:
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+jobs:
+  build-docker-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      ENV_IMAGE_NAME: "${{ github.repository_owner }}/substrate-cross-compiler-env"
+    outputs:
+      image-name: ${{ steps.env-vars.outputs.image-name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        debian-versions: [bookworm]
+        rust-versions: [1.88.0]
+        clang-versions: [20, 21]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set environmental variables
+        id: env-vars
+        run: |
+          echo "ENV_FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
+          echo "image-name=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.polkadot.code_git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
+          echo "CODE_GIT_REF=$(cat config.yml | yq -r '.polkadot.code_git_ref' | tr -d '\n')" >> "$GITHUB_ENV"
+      # - name: Check Docker image
+      #   run: |
+      #     if docker manifest inspect "${ENV_FULL_IMAGE_NAME}" > /dev/null 2>&1; then
+      #       echo "Image ${ENV_FULL_IMAGE_NAME} exists in the registry."
+      #       echo "CONTINUE_IMAGE_BUILD=false" >> "$GITHUB_ENV"
+      #     else
+      #       echo "Image ${ENV_FULL_IMAGE_NAME} does not exist in the registry."
+      #       echo "CONTINUE_IMAGE_BUILD=true" >> "$GITHUB_ENV"
+      #     fi
+      - name: Set up QEMU
+        # if: env.CONTINUE_IMAGE_BUILD == 'true'
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        # if: env.CONTINUE_IMAGE_BUILD == 'true'
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to Container registry
+        # if: env.CONTINUE_IMAGE_BUILD == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Extract metadata (tags, labels) for Docker
+        # if: env.CONTINUE_IMAGE_BUILD == 'true'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}
+      - name: Build and push Docker image
+        # if: env.CONTINUE_IMAGE_BUILD == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: dockerfiles
+          file: dockerfiles/Dockerfile-env-amd64
+          push: false
+          load: true
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            DEBIAN_VERSION=${{ matrix.debian-versions }}
+            RUST_STABLE_VERSION=${{ matrix.rust-versions }}
+            CLANG_VERSION=${{ matrix.clang-versions }}
+          tags: ${{ env.ENV_FULL_IMAGE_NAME }},image-to-test:latest
+      - name: Switch to default Docker builder
+        # if: env.CONTINUE_IMAGE_BUILD == 'true'
+        run: docker buildx use default
+      - name: Build node to test Docker image
+        # if: env.CONTINUE_IMAGE_BUILD == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: dockerfiles
+          file: dockerfiles/Dockerfile-env-test
+          push: false
+          pull: false
+          build-args: |
+            IMAGE_VERSION=image-to-test:latest
+            GIT_REPO=${{ env.CODE_GIT_REPO }}
+            GIT_REF=${{ env.CODE_GIT_REF }}
+          tags: test-build-image
+      - name: Push Docker image
+        # if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' }}
+        run: docker push ${{ env.ENV_FULL_IMAGE_NAME }}
