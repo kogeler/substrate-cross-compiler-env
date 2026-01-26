@@ -24,22 +24,34 @@ jobs:
   setup-matrix:
     runs-on: ubuntu-latest
     outputs:
-      debian-versions: ${{ steps.set-matrix.outputs.debian-versions }}
-      rust-versions: ${{ steps.set-matrix.outputs.rust-versions }}
-      clang-versions: ${{ steps.set-matrix.outputs.clang-versions }}
-      rustc-targets: ${{ steps.set-matrix.outputs.rustc-targets }}
-      components: ${{ steps.set-matrix.outputs.components }}
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Read matrix from config.yml
+      - name: Generate matrix from config.yml
         id: set-matrix
         run: |
-          echo "debian-versions=$(yq -o=json -I=0 '.polkadot.matrix.debian-versions' config.yml)" >> "$GITHUB_OUTPUT"
-          echo "rust-versions=$(yq -o=json -I=0 '.polkadot.matrix.rust-versions' config.yml)" >> "$GITHUB_OUTPUT"
-          echo "clang-versions=$(yq -o=json -I=0 '.polkadot.matrix.clang-versions' config.yml)" >> "$GITHUB_OUTPUT"
-          echo "rustc-targets=$(yq -o=json -I=0 '.polkadot.matrix.rustc-targets' config.yml)" >> "$GITHUB_OUTPUT"
-          echo "components=$(yq -o=json -I=0 '.polkadot.matrix.components' config.yml)" >> "$GITHUB_OUTPUT"
+          # Read config and expand all combinations into a flat matrix
+          matrix=$(yq -o=json '
+            [.[] |
+              . as $item |
+              $item["debian-versions"][] as $debian |
+              $item["rust-versions"][] as $rust |
+              $item["clang-versions"][] as $clang |
+              $item["rustc-targets"][] as $target |
+              $item["components"][] as $component |
+              {
+                "code_git_repo": $item["code_git_repo"],
+                "code_git_ref": $item["code_git_ref"],
+                "debian-versions": $debian,
+                "rust-versions": $rust,
+                "clang-versions": ($clang | tostring),
+                "rustc-targets": $target,
+                "components": $component
+              }
+            ]
+          ' config.yml)
+          echo "matrix={\"include\":$matrix}" >> "$GITHUB_OUTPUT"
 
   build-binaries:
     runs-on: ubuntu-latest
@@ -52,21 +64,15 @@ jobs:
       options: --user 0:0 --privileged -v /var/run/docker.sock:/var/run/docker.sock
     strategy:
       fail-fast: false
-      matrix:
-        debian-versions: ${{ fromJson(needs.setup-matrix.outputs.debian-versions) }}
-        rust-versions: ${{ fromJson(needs.setup-matrix.outputs.rust-versions) }}
-        clang-versions: ${{ fromJson(needs.setup-matrix.outputs.clang-versions) }}
-        rustc-targets: ${{ fromJson(needs.setup-matrix.outputs.rustc-targets) }}
-        components: ${{ fromJson(needs.setup-matrix.outputs.components) }}
+      matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Set environmental variables
         run: |
-          echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.polkadot.code_git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
-          CODE_GIT_REF=$(cat config.yml | yq -r '.polkadot.code_git_ref' | tr -d '\n')
-          echo "CODE_GIT_REF=${CODE_GIT_REF}" >> "$GITHUB_ENV"
-          VERSION=$( echo "${CODE_GIT_REF}" | sed -E 's/^polkadot-//')
+          echo "CODE_GIT_REPO=${{ matrix.code_git_repo }}" >> "$GITHUB_ENV"
+          echo "CODE_GIT_REF=${{ matrix.code_git_ref }}" >> "$GITHUB_ENV"
+          VERSION=$( echo "${{ matrix.code_git_ref }}" | sed -E 's/^polkadot-//')
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           BUILD_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
           echo "BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-${BUILD_VERSION}" >> $GITHUB_ENV
@@ -77,9 +83,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: ${{ env.CODE_GIT_REPO }}
+          repository: ${{ matrix.code_git_repo }}
           path: git-content
-          ref: ${{ env.CODE_GIT_REF }}
+          ref: ${{ matrix.code_git_ref }}
           fetch-depth: 1
       - name: Build binaries
         working-directory: ./git-content

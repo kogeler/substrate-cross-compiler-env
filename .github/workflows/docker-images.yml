@@ -29,8 +29,6 @@ jobs:
         run: |
           echo "ENV_FULL_IMAGE_NAME=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}:debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}" >> "$GITHUB_ENV"
           echo "image-name=${{ env.REGISTRY }}/${{ env.ENV_IMAGE_NAME }}" >> "$GITHUB_OUTPUT"
-          echo "CODE_GIT_REPO=$(cat config.yml | yq -r '.polkadot.code_git_repo' | tr -d '\n')" >> "$GITHUB_ENV"
-          echo "CODE_GIT_REF=$(cat config.yml | yq -r '.polkadot.code_git_ref' | tr -d '\n')" >> "$GITHUB_ENV"
       # - name: Check Docker image
       #   run: |
       #     if docker manifest inspect "${ENV_FULL_IMAGE_NAME}" > /dev/null 2>&1; then
@@ -86,8 +84,8 @@ jobs:
           pull: false
           build-args: |
             IMAGE_VERSION=image-to-test:latest
-            GIT_REPO=${{ env.CODE_GIT_REPO }}
-            GIT_REF=${{ env.CODE_GIT_REF }}
+            GIT_REPO=paritytech/polkadot-sdk
+            GIT_REF=polkadot-stable2512-1
           tags: test-build-image
       - name: Push Docker image
         # if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' }}
