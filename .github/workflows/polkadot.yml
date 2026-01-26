@@ -31,26 +31,8 @@ jobs:
       - name: Generate matrix from config.yml
         id: set-matrix
         run: |
-          # Read config and expand all combinations into a flat matrix
-          matrix=$(yq -o=json '
-            [.[] |
-              . as $item |
-              $item["debian-versions"][] as $debian |
-              $item["rust-versions"][] as $rust |
-              $item["clang-versions"][] as $clang |
-              $item["rustc-targets"][] as $target |
-              $item["components"][] as $component |
-              {
-                "code_git_repo": $item["code_git_repo"],
-                "code_git_ref": $item["code_git_ref"],
-                "debian-versions": $debian,
-                "rust-versions": $rust,
-                "clang-versions": ($clang | tostring),
-                "rustc-targets": $target,
-                "components": $component
-              }
-            ]
-          ' config.yml)
+          # Read config and expand all combinations into a flat matrix (compact JSON with -I=0)
+          matrix=$(yq -o=json -I=0 '[.[] | . as $item | $item["debian-versions"][] as $debian | $item["rust-versions"][] as $rust | $item["clang-versions"][] as $clang | $item["rustc-targets"][] as $target | $item["components"][] as $component | {"code_git_repo": $item["code_git_repo"], "code_git_ref": $item["code_git_ref"], "debian-versions": $debian, "rust-versions": $rust, "clang-versions": ($clang | tostring), "rustc-targets": $target, "components": $component}]' config.yml)
           echo "matrix={\"include\":$matrix}" >> "$GITHUB_OUTPUT"
 
   build-binaries:
