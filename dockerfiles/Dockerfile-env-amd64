@@ -22,9 +22,16 @@ ENV LD="lld-$CLANG_VERSION"
 ENV RUST_BACKTRACE=1
 
 # Install dependencies
+# Note: LLVM APT repo uses SHA1 signatures which are rejected by Sequoia in Trixie since 2026-02-01
+# Workaround: extend SHA1 acceptance deadline in Sequoia config (https://github.com/llvm/llvm-project/issues/153385)
 RUN set -eux && \
     apt-get -y update && \
     apt-get install --no-install-recommends -y curl ca-certificates apt-transport-https && \
+    mkdir -p /etc/crypto-policies/back-ends && \
+    if [ -f /usr/share/apt/default-sequoia.config ]; then \
+        sed 's/sha1.second_preimage_resistance = .*/sha1.second_preimage_resistance = 2027-01-01/' \
+            /usr/share/apt/default-sequoia.config > /etc/crypto-policies/back-ends/apt-sequoia.config; \
+    fi && \
     echo "deb https://deb.debian.org/debian ${DEBIAN_VERSION}-backports main" >> /etc/apt/sources.list.d/${DEBIAN_VERSION}-backports.list && \
     install -m 0755 -d /etc/apt/keyrings && \
     curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key -o /etc/apt/keyrings/llvm.asc && \
@@ -51,7 +58,7 @@ RUN set -eux && \
 RUN useradd rust --create-home -u 1000 --groups sudo
 RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 RUN mkdir ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
-run chown -R rust:rust ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
+RUN chown -R rust:rust ${RUSTUP_HOME} ${CARGO_HOME} ${CARGO_TARGET_DIR}
 USER rust
 # Install rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path --default-toolchain ${RUST_STABLE_VERSION} && \

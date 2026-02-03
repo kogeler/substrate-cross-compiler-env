@@ -54,7 +54,8 @@ jobs:
         run: |
           echo "CODE_GIT_REPO=${{ matrix.code_git_repo }}" >> "$GITHUB_ENV"
           echo "CODE_GIT_REF=${{ matrix.code_git_ref }}" >> "$GITHUB_ENV"
-          VERSION=$( echo "${{ matrix.code_git_ref }}" | sed -E 's/^polkadot-//')
+          # Sanitize VERSION for Docker tags/labels: allow only [a-zA-Z0-9._-], replace others with '-'
+          VERSION=$(echo "${{ matrix.code_git_ref }}" | sed -E 's/^polkadot-//' | sed 's/[^a-zA-Z0-9._-]/-/g')
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           BUILD_VERSION="debian-${{ matrix.debian-versions }}-rust-${{ matrix.rust-versions }}-clang-${{ matrix.clang-versions }}-${{ matrix.rustc-targets }}"
           echo "BINARY_FILE_NAME=${{ matrix.components }}-${VERSION}-${BUILD_VERSION}" >> $GITHUB_ENV
