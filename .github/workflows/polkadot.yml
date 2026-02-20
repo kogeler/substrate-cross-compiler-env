@@ -2,6 +2,12 @@ name: Build Polkadot binaries and images
 
 on:
   workflow_dispatch:
+    inputs:
+      builds:
+        description: "Build profiles from config.yml (all or comma-separated keys)"
+        required: false
+        default: all
+        type: string
   # push:
   #   branches: "*"
   #   paths:
@@ -30,10 +36,95 @@ jobs:
         uses: actions/checkout@v4
       - name: Generate matrix from config.yml
         id: set-matrix
+        env:
+          INPUT_BUILDS: ${{ github.event.inputs.builds || 'all' }}
         run: |
-          # Read config and expand all combinations into a flat matrix (compact JSON with -I=0)
-          matrix=$(yq -o=json -I=0 '[.[] | . as $item | $item["debian-versions"][] as $debian | $item["rust-versions"][] as $rust | $item["clang-versions"][] as $clang | $item["rustc-targets"][] as $target | $item["components"][] as $component | {"code_git_repo": $item["code_git_repo"], "code_git_ref": $item["code_git_ref"], "debian-versions": $debian, "rust-versions": $rust, "clang-versions": ($clang | tostring), "rustc-targets": $target, "components": $component}]' config.yml)
-          echo "matrix={\"include\":$matrix}" >> "$GITHUB_OUTPUT"
+          python3 - <<'PY'
+          import json
+          import os
+          import sys
+
+          import yaml
+
+          with open("config.yml", "r", encoding="utf-8") as file:
+              config = yaml.safe_load(file) or {}
+
+          if not isinstance(config, dict) or not config:
+              print("::error::config.yml must be a non-empty map of build profiles", file=sys.stderr)
+              sys.exit(1)
+
+          selected_builds_raw = (os.environ.get("INPUT_BUILDS") or "all").strip()
+          if selected_builds_raw == "all":
+              selected_builds = list(config.keys())
+          else:
+              selected_builds = [build.strip() for build in selected_builds_raw.split(",") if build.strip()]
+
+          if not selected_builds:
+              print("::error::No builds selected", file=sys.stderr)
+              sys.exit(1)
+
+          unknown_builds = [build for build in selected_builds if build not in config]
+          if unknown_builds:
+              allowed_builds = ",".join(config.keys())
+              print(
+                  f"::error::Unknown build(s): {','.join(unknown_builds)}. Allowed values: {allowed_builds}",
+                  file=sys.stderr,
+              )
+              sys.exit(1)
+
+          required_keys = [
+              "code_git_repo",
+              "code_git_ref",
+              "debian-versions",
+              "rust-versions",
+              "clang-versions",
+              "rustc-targets",
+              "components",
+          ]
+
+          matrix = []
+          for build_name in selected_builds:
+              item = config[build_name]
+              if not isinstance(item, dict):
+                  print(f"::error::Build '{build_name}' must be a map", file=sys.stderr)
+                  sys.exit(1)
+
+              missing_keys = [key for key in required_keys if key not in item]
+              if missing_keys:
+                  print(
+                      f"::error::Build '{build_name}' is missing keys: {','.join(missing_keys)}",
+                      file=sys.stderr,
+                  )
+                  sys.exit(1)
+
+              for key in ["debian-versions", "rust-versions", "clang-versions", "rustc-targets", "components"]:
+                  if not isinstance(item[key], list) or not item[key]:
+                      print(
+                          f"::error::Build '{build_name}' field '{key}' must be a non-empty list",
+                          file=sys.stderr,
+                      )
+                      sys.exit(1)
+
+              for debian in item["debian-versions"]:
+                  for rust in item["rust-versions"]:
+                      for clang in item["clang-versions"]:
+                          for target in item["rustc-targets"]:
+                              for component in item["components"]:
+                                  matrix.append(
+                                      {
+                                          "code_git_repo": item["code_git_repo"],
+                                          "code_git_ref": item["code_git_ref"],
+                                          "debian-versions": debian,
+                                          "rust-versions": rust,
+                                          "clang-versions": str(clang),
+                                          "rustc-targets": target,
+                                          "components": component,
+                                      }
+                                  )
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"matrix={json.dumps({'include': matrix}, separators=(',', ':'))}\n")
+          PY
 
   build-binaries:
     runs-on: ubuntu-latest

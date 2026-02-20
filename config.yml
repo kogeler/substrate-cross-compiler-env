@@ -1,4 +1,5 @@
-- code_git_repo: paritytech/polkadot-sdk
+last-release:
+  code_git_repo: paritytech/polkadot-sdk
   code_git_ref: polkadot-stable2512-1
   debian-versions:
     - bookworm
