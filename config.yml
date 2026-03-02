@@ -1,12 +1,11 @@
 last-release:
   code_git_repo: paritytech/polkadot-sdk
-  code_git_ref: polkadot-stable2512-1
+  code_git_ref: polkadot-stable2512-2
   debian-versions:
     - bookworm
   rust-versions:
     - "1.88.0"
   clang-versions:
-    - 20
     - 21
   rustc-targets:
     - x86-64-v3
