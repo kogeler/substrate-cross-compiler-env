@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        debian-versions: [bookworm]
+        debian-versions: [bookworm, trixie]
         rust-versions: [1.88.0]
         clang-versions: [21]
     steps:
@@ -87,7 +87,7 @@ jobs:
           build-args: |
             IMAGE_VERSION=image-to-test:latest
             GIT_REPO=paritytech/polkadot-sdk
-            GIT_REF=polkadot-stable2512-1
+            GIT_REF=polkadot-stable2512-2
           tags: test-build-image
       - name: Push Docker image
         # if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' }}
