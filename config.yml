@@ -1,6 +1,6 @@
 last-release:
   code_git_repo: paritytech/polkadot-sdk
-  code_git_ref: polkadot-stable2512-2
+  code_git_ref: polkadot-stable2512-3
   debian-versions:
     - bookworm
     - trixie
@@ -17,7 +17,7 @@ last-release:
     - polkadot-omni-node
 last-release-debian-trixie:
   code_git_repo: paritytech/polkadot-sdk
-  code_git_ref: polkadot-stable2512-2
+  code_git_ref: polkadot-stable2512-3
   debian-versions:
     - trixie
   rust-versions:
