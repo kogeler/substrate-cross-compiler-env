@@ -182,7 +182,7 @@ jobs:
           fi
           if [ "${{ matrix.components }}" = "polkadot-parachain" ]; then
             # "polkadot-parachain" with runtimes is too big for free runers
-            export SKIP_WASM_BUILD=1
+            #export SKIP_WASM_BUILD=1
             cargo build --profile production --locked --bin polkadot-parachain --target x86_64-unknown-linux-gnu
             ls ${BINARIES_DIR}
             cp ${BINARIES_DIR}/polkadot-parachain ${GITHUB_WORKSPACE}/artifacts
