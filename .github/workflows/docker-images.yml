@@ -87,7 +87,7 @@ jobs:
           build-args: |
             IMAGE_VERSION=image-to-test:latest
             GIT_REPO=paritytech/polkadot-sdk
-            GIT_REF=polkadot-stable2512-2
+            GIT_REF=polkadot-stable2603
           tags: test-build-image
       - name: Push Docker image
         # if: ${{ env.CONTINUE_IMAGE_BUILD == 'true' }}
