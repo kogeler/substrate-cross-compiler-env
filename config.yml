@@ -1,6 +1,6 @@
 last-release:
   code_git_repo: paritytech/polkadot-sdk
-  code_git_ref: polkadot-stable2603-1
+  code_git_ref: polkadot-stable2603-2
   debian-versions:
     - bookworm
     - trixie
